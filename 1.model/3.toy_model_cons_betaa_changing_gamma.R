@@ -19,8 +19,8 @@ model1 <- odin::odin({
   #rate parameter values
   betaa <- M0*mu #constant emergence rate
   mu <- 0.132
-  kill_per_day <- 100
-  gamma <- kill_per_day/M
+  kill_per_day <- 100 #this needs checking against AG soln
+  gamma <- kill_per_day/M #not quite right...check eqm solution
   
   #define times 
   dur <- user() #this is dependent on the endectocide
