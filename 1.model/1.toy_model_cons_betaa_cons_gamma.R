@@ -173,7 +173,8 @@ mosq_dead <- ggplot(all_products, aes(x = t, y = int_dead_out, col = as.factor(d
   geom_line(size = 1.5)+
   theme_bw()+
   ylab("Number of \n intervention-killed mosquitoes")+
-  labs(col = "Intervention duration")
+  labs(col = "Intervention duration")+
+  ggtitle("Constant betaa, constant gamma")
 
 mosq_all <- ggplot(all_products, aes(x = t, y = M_out, col = as.factor(dur_out)))+
   geom_line(size = 1.5)+
