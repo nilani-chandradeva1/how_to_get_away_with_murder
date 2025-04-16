@@ -337,7 +337,7 @@ results_df <- results_df %>%
     )
   )
 
-results_df <- results_df %>%
+results_df_method3 <- results_df %>%
   rename(Killing_duration_23d = prod_endec1, 
          Killing_duration_20d = prod_endec2, 
          Killing_duration_26d = prod_endec3, 
