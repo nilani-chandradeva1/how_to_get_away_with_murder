@@ -22,7 +22,7 @@ model1 <- odin::odin({
   AG_out <-user() #this is the rates calculated frm Andrew's work 
   mosq_to_kill <- 100 #need to check unit on this, i.e. over what duration? talk to TC. Can see max 200 mosq killed by int if this is 100
   gammaT <- AG_out*mosq_to_kill #this needs checking against AG soln
-  gamma <- gammaT/M #not quite right...check eqm solution
+  gamma <- gammaT/M 
   
   #define times 
   dur <- user() #this is dependent on the endectocide
