@@ -21,7 +21,7 @@ model1 <- odin::odin({
   mu <- 0.132
   AG_out <-user() #this is the rates calculated frm Andrew's work 
   mosq_to_kill <- 100 #need to check unit on this, i.e. over what duration? talk to TC. Can see max 200 mosq killed by int if this is 100
-  gammaT <- AG_out*kill_per_day #this needs checking against AG soln
+  gammaT <- AG_out*mosq_to_kill #this needs checking against AG soln
   gamma <- gammaT/M #not quite right...check eqm solution
   
   #define times 
@@ -218,10 +218,34 @@ mean_M_out_4_months <- all_products %>%
 mean_M_out_4_months_wide <- mean_M_out_4_months %>%
   pivot_wider(names_from = dur_out, values_from = mean_M_out)
 
-impact_endec1_4m <- mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`23`/mean_M_out_4_months_wide$`0` 
-impact_endec3_4m <- mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`26`/mean_M_out_4_months_wide$`0` 
-impact_endec2_4m <- mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`20`/mean_M_out_4_months_wide$`0` 
-impact_endec4_4m <- mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`40`/mean_M_out_4_months_wide$`0` 
+impact_endec1_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`23`)/mean_M_out_4_months_wide$`0`) *100
+impact_endec3_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`26`)/mean_M_out_4_months_wide$`0`) *100
+impact_endec2_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`20`)/mean_M_out_4_months_wide$`0`) *100
+impact_endec4_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`40`)/mean_M_out_4_months_wide$`0`) *100
+
+
+measurement_method <- c("4 months", "Dur of longest product (40 days)", "for each product's killing")
+results_df <- data.frame(measurement_method)
+
+results_df <- results_df %>%
+  mutate(
+    prod_endec1 = case_when(
+      measurement_method == "4 months" ~ impact_endec1_4m,
+      TRUE ~ NA
+    ),
+    prod_endec2 = case_when(
+      measurement_method == "4 months" ~ impact_endec2_4m,
+      TRUE ~ NA
+    ),
+    prod_endec3 = case_when(
+      measurement_method == "4 months" ~ impact_endec3_4m,
+      TRUE ~ NA
+    ),
+    prod_endec4 = case_when(
+      measurement_method == "4 months" ~ impact_endec4_4m,
+      TRUE ~ NA
+    )
+  )
 
 
 mean_M_out_dur4 <- all_products %>%
@@ -232,10 +256,30 @@ mean_M_out_dur4 <- all_products %>%
 mean_M_out_dur4_wide <- mean_M_out_dur4 %>%
   pivot_wider(names_from = dur_out, values_from = mean_M_out)
 
-impact_endec1_dur4 <- mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`23`/mean_M_out_dur4_wide$`0` 
-impact_endec3_dur4 <- mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`26`/mean_M_out_dur4_wide$`0` 
-impact_endec2_dur4 <- mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`20`/mean_M_out_dur4_wide$`0` 
-impact_endec4_dur4 <- mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`40`/mean_M_out_dur4_wide$`0` 
+impact_endec1_dur4 <- ((mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`23`)/mean_M_out_dur4_wide$`0` )*100
+impact_endec3_dur4 <- ((mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`26`)/mean_M_out_dur4_wide$`0` )*100
+impact_endec2_dur4 <- ((mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`20`)/mean_M_out_dur4_wide$`0` )*100
+impact_endec4_dur4 <- ((mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`40`)/mean_M_out_dur4_wide$`0` )*100
+
+results_df <- results_df %>%
+  mutate(
+    prod_endec1 = case_when(
+      measurement_method == measurement_method[2] ~ impact_endec1_dur4,
+      TRUE ~ prod_endec1
+    ),
+    prod_endec2 = case_when(
+      measurement_method == measurement_method[2] ~ impact_endec2_dur4,
+      TRUE ~ prod_endec2
+    ),
+    prod_endec3 = case_when(
+      measurement_method == measurement_method[2] ~ impact_endec3_dur4,
+      TRUE ~ prod_endec3
+    ),
+    prod_endec4 = case_when(
+      measurement_method == measurement_method[2] ~ impact_endec4_dur4,
+      TRUE ~ prod_endec4
+    )
+  )
 
 #for dur of each product
 
@@ -268,7 +312,34 @@ avert_endec4 <- df_endec4 %>%
   filter(between(t, 300, 300+dur4)) %>%
   summarise(mean_M_out = mean(M_out))
 
-impact_endec1_dur1 <- endec0_dur1-avert_endec1/endec0_dur1
-impact_endec2_dur2 <- endec0_dur2-avert_endec2/endec0_dur2
-impact_endec3_dur3 <- endec0_dur3-avert_endec3/endec0_dur3
-impact_endec4_dur4 <- endec0_dur4-avert_endec4/endec0_dur4
+impact_endec1_dur1 <- ((endec0_dur1-avert_endec1)/endec0_dur1)*100
+impact_endec2_dur2 <- ((endec0_dur2-avert_endec2)/endec0_dur2)*100
+impact_endec3_dur3 <- ((endec0_dur3-avert_endec3)/endec0_dur3)*100
+impact_endec4_dur4 <- ((endec0_dur4-avert_endec4)/endec0_dur4)*100
+
+results_df <- results_df %>%
+  mutate(
+    prod_endec1 = case_when(
+      measurement_method == measurement_method[3] ~ impact_endec1_dur1[[1]],
+      TRUE ~ prod_endec1
+    ),
+    prod_endec2 = case_when(
+      measurement_method == measurement_method[3] ~ impact_endec2_dur2[[1]],
+      TRUE ~ prod_endec2
+    ),
+    prod_endec3 = case_when(
+      measurement_method == measurement_method[3] ~ impact_endec3_dur3[[1]],
+      TRUE ~ prod_endec3
+    ),
+    prod_endec4 = case_when(
+      measurement_method == measurement_method[3] ~ impact_endec4_dur4[[1]],
+      TRUE ~ prod_endec4
+    )
+  )
+
+results_df <- results_df %>%
+  rename(Killing_duration_23d = prod_endec1, 
+         Killing_duration_20d = prod_endec2, 
+         Killing_duration_26d = prod_endec3, 
+         Killing_duration_40d = prod_endec4,
+         percent_M_averted_over_time = measurement_method)
