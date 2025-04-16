@@ -20,7 +20,7 @@ model1 <- odin::odin({
   betaa <- M0*mu #constant emergence rate
   mu <- 0.132
   AG_out <-user() #this is the rates calculated frm Andrew's work 
-  kill_per_day <- 100 #if killing 100 mosq per day
+  mosq_to_kill <- 100 #need to check unit on this, i.e. over what duration? talk to TC. Can see max 200 mosq killed by int if this is 100
   gammaT <- AG_out*kill_per_day #this needs checking against AG soln
   gamma <- gammaT/M #not quite right...check eqm solution
   
