@@ -19,8 +19,9 @@ model1 <- odin::odin({
   #rate parameter values
   betaa <- M0*mu #constant emergence rate
   mu <- 0.132
-  kill_per_day <- 100 #this needs checking against AG soln
-  gamma <- kill_per_day/M #not quite right...check eqm solution
+  AG_out <-user()
+  gammaT <- AG_out*20 #this needs checking against AG soln
+  gamma <- gammaT/M #not quite right...check eqm solution
   
   #define times 
   dur <- user() #this is dependent on the endectocide
@@ -59,7 +60,7 @@ dur4 <- 40
 #check int_on matches this length 
 int_on1 <- rep(time_period, n_times)
 int_on1[ttt >= 300 & ttt < (300 + dur1)] <- rep(300,dur1)
-endec1 <- model1$new(dur = dur1, n_times = n_times, ttt = ttt, int_on = int_on1, gamma = 0.09)
+endec1 <- model1$new(dur = dur1, n_times = n_times, ttt = ttt, int_on = int_on1, AG_out = 0.09)
 
 #then run the model over the time period 
 tt_endec1 <- seq(0, time_period, length.out = time_period)
@@ -99,7 +100,7 @@ endec4_int_rate <- gamma_estimator(int_rateA =  endec1_int_rate, durationA = dur
 #endec2###
 int_on2 <- rep(time_period, n_times)
 int_on2[ttt >= 300 & ttt < (300 + dur2)] <- rep(300,dur2)
-endec2 <- model1$new(dur = dur2, n_times = n_times, ttt = ttt, int_on = int_on2, gamma = endec2_int_rate)
+endec2 <- model1$new(dur = dur2, n_times = n_times, ttt = ttt, int_on = int_on2, AG_out = endec2_int_rate)
 
 #then run the model over the time period 
 tt_endec2 <- seq(0, time_period, length.out = time_period)
@@ -110,7 +111,7 @@ df_endec2 <- as.data.frame(run_endec2)
 #endec3###
 int_on3 <- rep(time_period, n_times)
 int_on3[ttt >= 300 & ttt < (300 + dur3)] <- rep(300,dur3)
-endec3 <- model1$new(dur = dur3, n_times = n_times, ttt = ttt, int_on = int_on3, gamma = endec3_int_rate)
+endec3 <- model1$new(dur = dur3, n_times = n_times, ttt = ttt, int_on = int_on3, AG_out = endec3_int_rate)
 
 #then run the model over the time period 
 tt_endec3 <- seq(0, time_period, length.out = time_period)
@@ -121,7 +122,7 @@ df_endec3 <- as.data.frame(run_endec3)
 #endec4###
 int_on4 <- rep(time_period, n_times)
 int_on4[ttt >= 300 & ttt < (300 + dur4)] <- rep(300,dur4)
-endec4 <- model1$new(dur = dur4, n_times = n_times, ttt = ttt, int_on = int_on4, gamma = endec4_int_rate)
+endec4 <- model1$new(dur = dur4, n_times = n_times, ttt = ttt, int_on = int_on4, AG_out = endec4_int_rate)
 
 #then run the model over the time period 
 tt_endec4 <- seq(0, time_period, length.out = time_period)
@@ -133,22 +134,26 @@ df_endec4 <- as.data.frame(run_endec4)
 all_products <- do.call("rbind", list(df_endec1, df_endec2, df_endec3, df_endec4))
 
 mosq_dead <- ggplot(all_products, aes(x = t, y = int_dead_out, col = as.factor(dur_out)))+
-  geom_line()+
+  geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Number of \n intervention-killed mosquitoes")+
-  labs(col = "Intervention duration")
+  labs(col = "Intervention duration")+
+  ggtitle("Constant betaa, varying gamma")+
+  xlim(250, 400)
 
 mosq_all <- ggplot(all_products, aes(x = t, y = M_out, col = as.factor(dur_out)))+
-  geom_line()+
+  geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Total number of mosquitoes")+
-  labs(col = "Intervention duration")
+  labs(col = "Intervention duration")+
+  xlim(250, 400)
 
 betaa_plot <- ggplot(all_products, aes(x = t, y = betaa_out, col = as.factor(dur_out)))+
-  geom_line()+
+  geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Number of mosquitoes \n emerging per day")+
-  labs(col = "Intervention duration")
+  labs(col = "Intervention duration")+
+  xlim(250, 400)
 
 cowplot::plot_grid(mosq_dead, mosq_all, betaa_plot, nrow = 3)
 
