@@ -201,10 +201,10 @@ mean_M_out_4_months <- all_products %>%
 mean_M_out_4_months_wide <- mean_M_out_4_months %>%
   pivot_wider(names_from = dur_out, values_from = mean_M_out)
 
-impact_endec1_4m <- mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`23`/mean_M_out_4_months_wide$`0` 
-impact_endec3_4m <- mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`26`/mean_M_out_4_months_wide$`0` 
-impact_endec2_4m <- mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`20`/mean_M_out_4_months_wide$`0` 
-impact_endec4_4m <- mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`40`/mean_M_out_4_months_wide$`0` 
+impact_endec1_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`23`)/mean_M_out_4_months_wide$`0`)*100 
+impact_endec3_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`26`)/mean_M_out_4_months_wide$`0`)*100 
+impact_endec2_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`20`)/mean_M_out_4_months_wide$`0`)*100 
+impact_endec4_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`40`)/mean_M_out_4_months_wide$`0`)*100 
 
 
 mean_M_out_dur4 <- all_products %>%
@@ -215,10 +215,10 @@ mean_M_out_dur4 <- all_products %>%
 mean_M_out_dur4_wide <- mean_M_out_dur4 %>%
   pivot_wider(names_from = dur_out, values_from = mean_M_out)
 
-impact_endec1_dur4 <- mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`23`/mean_M_out_dur4_wide$`0` 
-impact_endec3_dur4 <- mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`26`/mean_M_out_dur4_wide$`0` 
-impact_endec2_dur4 <- mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`20`/mean_M_out_dur4_wide$`0` 
-impact_endec4_dur4 <- mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`40`/mean_M_out_dur4_wide$`0` 
+impact_endec1_dur4 <- ((mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`23`)/mean_M_out_dur4_wide$`0` )*100
+impact_endec3_dur4 <- ((mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`26`)/mean_M_out_dur4_wide$`0` )*100
+impact_endec2_dur4 <- ((mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`20`)/mean_M_out_dur4_wide$`0` )*100
+impact_endec4_dur4 <- ((mean_M_out_dur4_wide$`0` - mean_M_out_dur4_wide$`40`)/mean_M_out_dur4_wide$`0` )*100
 
 #for dur of each product
 
@@ -251,7 +251,7 @@ avert_endec4 <- df_endec4 %>%
   filter(between(t, 300, 300+dur4)) %>%
   summarise(mean_M_out = mean(M_out))
 
-impact_endec1_dur1 <- endec0_dur1-avert_endec1/endec0_dur1
-impact_endec2_dur2 <- endec0_dur2-avert_endec2/endec0_dur2
-impact_endec3_dur3 <- endec0_dur3-avert_endec3/endec0_dur3
-impact_endec4_dur4 <- endec0_dur4-avert_endec4/endec0_dur4
+impact_endec1_dur1 <- ((endec0_dur1-avert_endec1)/endec0_dur1)*100
+impact_endec2_dur2 <- ((endec0_dur2-avert_endec2)/endec0_dur2)*100
+impact_endec3_dur3 <- ((endec0_dur3-avert_endec3)/endec0_dur3)*100
+impact_endec4_dur4 <- ((endec0_dur4-avert_endec4)/endec0_dur4)*100
