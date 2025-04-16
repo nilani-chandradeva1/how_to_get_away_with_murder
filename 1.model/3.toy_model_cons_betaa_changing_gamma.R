@@ -20,7 +20,7 @@ model1 <- odin::odin({
   betaa <- M0*mu #constant emergence rate
   mu <- 0.132
   AG_out <-user() #this is the rates calculated frm Andrew's work 
-  kill_per_day <- 20 #if killing 20 mosq per day
+  kill_per_day <- 100 #if killing 100 mosq per day
   gammaT <- AG_out*kill_per_day #this needs checking against AG soln
   gamma <- gammaT/M #not quite right...check eqm solution
   
@@ -140,27 +140,27 @@ mosq_dead <- ggplot(all_products, aes(x = t, y = int_dead_out, col = as.factor(d
   ylab("Number of \n intervention-killed mosquitoes")+
   labs(col = "Intervention duration")+
   ggtitle("Constant betaa, varying gamma")+
-  xlim(250, 400)
+  xlim(250, 420)
 
 mosq_all <- ggplot(all_products, aes(x = t, y = M_out, col = as.factor(dur_out)))+
   geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Total number of mosquitoes")+
   labs(col = "Intervention duration")+
-  xlim(250, 400)
+  xlim(250, 420)
 
 betaa_plot <- ggplot(all_products, aes(x = t, y = betaa_out, col = as.factor(dur_out)))+
   geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Number of mosquitoes \n emerging per day")+
   labs(col = "Intervention duration")+
-  xlim(250, 400)
+  xlim(250, 420)
 
 cowplot::plot_grid(mosq_dead, mosq_all, betaa_plot, nrow = 3)
 
 
 #baseline model 
-endec0 <- model1$new(dur = dur1, n_times = n_times, ttt = ttt, int_on = int_on1, gamma = 0)
+endec0 <- model1$new(dur = dur1, n_times = n_times, ttt = ttt, int_on = int_on1, AG_out = 0)
 tt_endec0 <- seq(0, time_period, length.out = time_period)
 run_endec0 <- endec0$run(tt_endec0)
 df_endec0 <- as.data.frame(run_endec0) %>%
@@ -177,30 +177,35 @@ ggplot(df_endec0, aes(x = t, y = betaa_out))+
 all_products <- do.call("rbind", list(df_endec0, df_endec1, df_endec2, df_endec3, df_endec4))
 
 mosq_dead <- ggplot(all_products, aes(x = t, y = int_dead_out, col = as.factor(dur_out)))+
-  geom_line(size = 1.5)+
+  geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Number of \n intervention-killed mosquitoes")+
-  labs(col = "Intervention duration")
+  labs(col = "Intervention duration")+
+  ggtitle("Constant betaa, varying gamma")+
+  xlim(290, 420)
 
 mosq_all <- ggplot(all_products, aes(x = t, y = M_out, col = as.factor(dur_out)))+
-  geom_line(size = 1.5)+
+  geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Total number of mosquitoes")+
-  labs(col = "Intervention duration")
+  labs(col = "Intervention duration")+
+  xlim(290, 420)
 
 betaa_plot <- ggplot(all_products, aes(x = t, y = betaa_out, col = as.factor(dur_out)))+
-  geom_line(size = 1.5)+
+  geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Number of mosquitoes \n emerging per day")+
-  labs(col = "Intervention duration")
+  labs(col = "Intervention duration")+
+  xlim(290, 420)
 
-ggplot(all_products, aes(x = t, y = gamma_out, col = as.factor(dur_out)))+
-  geom_line(size = 1.5)+
+death_rate_plot <- ggplot(all_products, aes(x = t, y = gamma_out, col = as.factor(dur_out)))+
+  geom_line(size = 1.5, alpha = 0.6)+
   theme_bw()+
   ylab("Int death rate")+
-  labs(col = "Intervention duration")
+  labs(col = "Intervention duration")+
+  xlim(290, 420)
 
-cowplot::plot_grid(mosq_dead, mosq_all, betaa_plot, nrow = 3)
+cowplot::plot_grid(mosq_dead, mosq_all, betaa_plot,death_rate_plot, nrow = 4)
 
 #measure impact in a i) 4-month period from int turned on ii) for duration of longest product and
 #iii) duration of each product 
