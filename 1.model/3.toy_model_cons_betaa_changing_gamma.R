@@ -224,7 +224,7 @@ impact_endec2_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`2
 impact_endec4_4m <- ((mean_M_out_4_months_wide$`0` - mean_M_out_4_months_wide$`40`)/mean_M_out_4_months_wide$`0`) *100
 
 
-measurement_method <- c("4 months", "Dur of longest product (40 days)", "for each product's killing")
+measurement_method <- c("4 months", "Dur of longest product (40 days)", "for each product's killing duration")
 results_df <- data.frame(measurement_method)
 
 results_df <- results_df %>%
