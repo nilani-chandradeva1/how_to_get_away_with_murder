@@ -1,5 +1,5 @@
 #a simple toy model using odin to determine whether to kill "100 mosquitoes in a day or 1 mosquito a day for 100 days"
-
+#constant betaa and changing gamma
 require(tidyverse)
 require(odin)
 
