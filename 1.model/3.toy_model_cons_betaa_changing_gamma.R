@@ -19,8 +19,9 @@ model1 <- odin::odin({
   #rate parameter values
   betaa <- M0*mu #constant emergence rate
   mu <- 0.132
-  AG_out <-user()
-  gammaT <- AG_out*20 #this needs checking against AG soln
+  AG_out <-user() #this is the rates calculated frm Andrew's work 
+  kill_per_day <- 20 #if killing 20 mosq per day
+  gammaT <- AG_out*kill_per_day #this needs checking against AG soln
   gamma <- gammaT/M #not quite right...check eqm solution
   
   #define times 
