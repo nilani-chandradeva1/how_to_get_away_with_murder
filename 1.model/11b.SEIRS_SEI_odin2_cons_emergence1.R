@@ -384,11 +384,11 @@ model_results_df <- model_results_df %>%
 unique(model_results_df$label)
 
 model_results_df_all <- model_results_df %>%
-  left_join(model_results_base_df[,c("t", "C0", "delta_t", "delta_D", "M0", "m0", "mu_v")], by = c("t", "delta_t", "delta_D", "M0", "m0", "mu_v")) %>%
+  left_join(model_results_base_df[,c("t", "C0")], by = c("t")) %>%
   mutate(delta_C = C0-C, 
          rel_delta_C = ((C0-C)/C0)*100)
 
-range(model_results_df_all$delta_C_rel, na.rm = TRUE)
+range(model_results_df_all$rel_delta_C, na.rm = TRUE) #cases are similar for both baseline and intervention. this is wrong
 
 
 
@@ -416,7 +416,7 @@ model_results_base_df %>%
 #which averts more cases?
 
 model_base <- model_results_base_df %>%
-  group_by(m0) %>%
+  group_by(m0, mu_v) %>%
   summarise(mean_prev = mean(I_h/N)) %>%
   mutate(scenario = "baseline")
 
