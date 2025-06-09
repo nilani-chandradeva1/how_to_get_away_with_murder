@@ -421,6 +421,21 @@ model_results_base_df %>%
   summarise(mean_prev = mean(I_h/N))
 
 
+model_results_df_all <- model_results_df_all %>%
+  mutate(prop_killed = delta_D/M0)
+unique(model_results_df_all$prop_killed)
+
+model_results_df <- model_results_df %>%
+  mutate(constant_emergence = FALSE)
+
+saveRDS(model_results_df, file = "2.output/model_results_df_constant_emergence_FALSE.rds")
+
+model_results_base_df <- model_results_base_df %>%
+  mutate(constant_emergence = FALSE)
+
+saveRDS(model_results_base_df, file = "2.output/model_results_base_df_constant_emergence_FALSE.rds")
+
+
 
 #which averts more cases?
 
@@ -440,21 +455,6 @@ model_all_summary <- model_results_df_all %>%
 model_compare <- left_join(model_all_summary, model_base, by = c("m0","mu_v"))
 
 
-
-
-model_results_df_all <- model_results_df_all %>%
-  mutate(prop_killed = delta_D/M0)
-unique(model_results_df_all$prop_killed)
-
-model_results_df <- model_results_df %>%
-  mutate(constant_emergence = FALSE)
-
-saveRDS(model_results_df, file = "2.output/model_results_df_constant_emergence_FALSE.rds")
-
-model_results_base_df <- model_results_base_df %>%
-  mutate(constant_emergence = FALSE)
-
-saveRDS(model_results_base_df, file = "2.output/model_results_base_df_constant_emergence_FALSE.rds")
 
 
 
