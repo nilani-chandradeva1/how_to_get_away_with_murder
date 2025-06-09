@@ -263,7 +263,7 @@ param_grid <- tibble(
 
 model_results <- vector("list", nrow(param_grid))
 
-time_period <- 300
+time_period <- 500
 #psi_vec <- psi_vec
 
 for (i in seq_len(nrow(param_grid))){
@@ -385,30 +385,39 @@ unique(model_results_df$label)
 
 model_results_df_all <- model_results_df %>%
   left_join(model_results_base_df[,c("t", "C0")], by = c("t")) %>%
-  mutate(delta_C = C0-C, 
+  mutate(delta_C = C0-C, #baseline minus int
          rel_delta_C = ((C0-C)/C0)*100)
 
-range(model_results_df_all$rel_delta_C, na.rm = TRUE) #cases are similar for both baseline and intervention. this is wrong
+range(model_results_df_all$rel_delta_C, na.rm = TRUE) 
+range(model_results_df_all$delta_C, na.rm = TRUE)
 
-
-
-ggplot(model_results_df, aes(x = t, y = I_h/N, col = as.factor(label)))+
+ggplot(model_results_base_df, aes(x = t, y = C0))+
+  facet_wrap(vars(label))+
   geom_line()
 
-ggplot(model_results_df, aes(x = t, y = I_v, col = as.factor(delta_t)))+
+
+ggplot(model_results_df, aes(x = t, y = I_h/N))+
+  facet_wrap(vars(label))+
   geom_line()
 
-ggplot(model_results_df, aes(x = t, y = D, col = as.factor(label)))+
+ggplot(model_results_df, aes(x = t, y = I_v))+
+  facet_wrap(vars(label))+
   geom_line()
 
-ggplot(model_results_df, aes(x = t, y = C, col = as.factor(label)))+
+ggplot(model_results_df, aes(x = t, y = D))+
+  facet_wrap(vars(label))+
   geom_line()
 
-ggplot(model_results_base_df, aes(x = t, y = I_h/N, col = as.factor(label)))+
+ggplot(model_results_df, aes(x = t, y = C))+
+  facet_wrap(vars(label))+
+  geom_line()
+
+ggplot(model_results_base_df, aes(x = t, y = I_h/N))+
+  facet_wrap(vars(label))+
   geom_line()
 
 model_results_base_df %>%
-  group_by(delta_D) %>%
+  group_by(m0, mu_v) %>%
   summarise(mean_prev = mean(I_h/N))
 
 
@@ -425,7 +434,7 @@ model_all_summary <- model_results_df_all %>%
   summarise(max_delta_C = max(delta_C), #maximum cases averted is by the sharp intervention
             total_delta_C = sum(delta_C), 
             max_rel_delta_C = max(rel_delta_C, na.rm = TRUE), 
-            mean_prev = mean(I_h/N))%>% #something about this mean prevalence is wrong
+            mean_prev = mean(I_h/N))%>% 
   mutate(scenario = "intervention")
 
 model_compare <- left_join(model_all_summary, model_base, by = c("m0","mu_v"))
