@@ -357,7 +357,7 @@ for (i in seq_len(nrow(param_grid_base))){
   
   #store output 
   model_results_base[[i]] <- cbind(as.data.frame(out), delta_t = in_delta_t, psi = in_psi, 
-                                   delta_D = in_delta_D, M0 = in_M0, m0 = in_params$m0)
+                                   delta_D = in_delta_D, M0 = in_M0, m0 = in_params$m0, mu_v = in_params$mu_v)
 }
 
 model_results_base_df <- dplyr::bind_rows(model_results_base)
@@ -384,7 +384,7 @@ model_results_df <- model_results_df %>%
 unique(model_results_df$label)
 
 model_results_df_all <- model_results_df %>%
-  left_join(model_results_base_df[,c("t", "C0", "mu_v")], by = c("t", "mu_v")) %>%
+  left_join(model_results_base_df[,c("t", "C0", "delta_t", "delta_D", "M0", "m0", "mu_v")], by = c("t", "delta_t", "delta_D", "M0", "m0", "mu_v")) %>%
   mutate(delta_C = C0-C, 
          rel_delta_C = ((C0-C)/C0)*100)
 
