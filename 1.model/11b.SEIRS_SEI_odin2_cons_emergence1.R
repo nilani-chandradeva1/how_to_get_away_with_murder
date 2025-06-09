@@ -45,7 +45,7 @@ params_base <- list(
   #delta_D = 1000,          # Target mosquitoes killed
   delta_D = c(500, 1000),
   #times = seq(0, 500, by = 0.1), # All time points inclusive of pre-intervention
-  delta_t_vec = c(10, 20, 50, 100, 200) # Intervention durations (days)
+  delta_t_vec = c(10, 30, 90) # Intervention durations (days)
   #delta_t_vec = 10
 )
 params_base$m0 <- with(params_base, {M0 / N0}) # Initial mosquito to human ratio
@@ -117,9 +117,9 @@ for (i in seq_len(nrow(grid))) {
   mu_v <- grid$mu_v[i]
   
   if (constant_emergence == 0) {
-    psi_fit <- fit_psi(Delta_t, Delta_D, mu_v, grid$M0[i])
+    psi_fit <- fit_psi(Delta_t, Delta_D, mu_v, M0)
   } else {
-    psi_fit <- baseline_psi(Delta_t, Delta_D, grid$M0[i])
+    psi_fit <- baseline_psi(Delta_t, Delta_D, M0)
   }
   
   psi_vec[i] <- psi_fit  # store the result
@@ -240,8 +240,8 @@ malaria_model <- odin::odin({
   
   #define outputs
   #output(prev) <- I_h/N
-  output(R0_t)
-  output(Re_t)
+  output(R0_t) <- R0_t
+  output(Re_t) <- Re_t
 })
 
 
@@ -257,12 +257,13 @@ param_grid <- tibble(
   delta_D = grid$delta_D, 
   delta_t = grid$delta_t, 
   psi = grid$psi, 
-  M0 = grid$M0
+  M0 = grid$M0, 
+  mu_v = grid$mu_v
 )
 
 model_results <- vector("list", nrow(param_grid))
 
-time_period <- 500
+time_period <- 300
 #psi_vec <- psi_vec
 
 for (i in seq_len(nrow(param_grid))){
@@ -270,11 +271,13 @@ for (i in seq_len(nrow(param_grid))){
   in_delta_t <- param_grid$delta_t[i]
   in_psi <- param_grid$psi[i]
   in_M0 <- param_grid$M0[i]
+  in_mu_v <- param_grid$mu_v[i]
   
   in_params <- params_base
   in_params$delta_t <- in_delta_t
   in_params$delta_D <- in_delta_D
   in_params$M0 <- in_M0
+  in_params$mu_v <- in_mu_v
   #in_params$psi <- in_psi
   in_params$psi <- psi_vec[i]
   
@@ -297,19 +300,22 @@ for (i in seq_len(nrow(param_grid))){
   
   #store output 
   model_results[[i]] <- cbind(as.data.frame(out), delta_t = in_delta_t, psi = in_psi, 
-                              delta_D = in_delta_D, M0 = in_M0, m0 = in_params$m0)
+                              delta_D = in_delta_D, M0 = in_M0, m0 = in_params$m0, 
+                              mu_v = in_mu_v)
 }
 
 model_results_df <- dplyr::bind_rows(model_results)
 unique(model_results_df$delta_D)
 unique(model_results_df$M0)
+unique(model_results_df$mu_v)
 
 #also run a baseline scenario: no interventions 
 param_grid_base <- tibble(
   delta_t = 0, 
   psi = 0, 
   delta_D = 0,
-  M0 = params_base$M0
+  M0 = params_base$M0, 
+  mu_v = params_base$mu_v
 )
 
 model_results_base <- vector("list", nrow(param_grid_base))
@@ -322,11 +328,13 @@ for (i in seq_len(nrow(param_grid_base))){
   in_delta_t <- param_grid_base$delta_t[i]
   in_psi <- param_grid_base$psi[i]
   in_M0 <- param_grid_base$M0[i]
+  in_mu_v <- param_grid_base$mu_v[i]
   
   in_params <- params_base
   in_params$delta_t <- in_delta_t
   in_params$delta_D <- in_delta_D
   in_params$M0 <- in_M0
+  in_params$mu_v <- in_mu_v
   #in_params$psi <- in_psi
   in_params$psi <- psi_vec[i]
   
@@ -357,7 +365,8 @@ unique(model_results_base_df$m0)
 model_results_base_df <- model_results_base_df %>%
   mutate(M = S_v + E_v + I_v, 
          N = S_h+E_h+I_h+R_h, 
-         label =paste0("baseline, m0" = m0)) %>%
+         label =paste0("baseline: m0 = ", m0, 
+                       ", mu_v = ",mu_v)) %>%
   rename(C0 = C)
 
 unique(model_results_base_df$label)
@@ -370,11 +379,12 @@ model_results_df <- model_results_df %>%
                         ", delta_t = ", delta_t, 
                         ", D = ", delta_D, 
                         ", M0 = ", M0, 
-                        ", m0=",m0))
+                        ", m0=",m0, 
+                        ", mu_v= ", mu_v))
 unique(model_results_df$label)
 
 model_results_df_all <- model_results_df %>%
-  left_join(model_results_base_df[,c("t", "C0")], by = c("t")) %>%
+  left_join(model_results_base_df[,c("t", "C0", "mu_v")], by = c("t", "mu_v")) %>%
   mutate(delta_C = C0-C, 
          rel_delta_C = ((C0-C)/C0)*100)
 
@@ -411,14 +421,14 @@ model_base <- model_results_base_df %>%
   mutate(scenario = "baseline")
 
 model_all_summary <- model_results_df_all %>%
-  group_by(delta_t, delta_D, m0) %>%
+  group_by(delta_t, delta_D, m0, mu_v) %>%
   summarise(max_delta_C = max(delta_C), #maximum cases averted is by the sharp intervention
             total_delta_C = sum(delta_C), 
             max_rel_delta_C = max(rel_delta_C, na.rm = TRUE), 
             mean_prev = mean(I_h/N))%>% #something about this mean prevalence is wrong
   mutate(scenario = "intervention")
 
-model_compare <- left_join(model_all_summary, model_base, by = "m0")
+model_compare <- left_join(model_all_summary, model_base, by = c("m0","mu_v"))
 
 
 
