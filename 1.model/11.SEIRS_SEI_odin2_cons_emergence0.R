@@ -394,7 +394,7 @@ model_results_df %>%
 model_results_df_all <- model_results_df %>%
   left_join(model_results_base_df[,c("t", "C0", "mu_v", "M0", "m0")]) %>% #let it auto-select joining cols
   mutate(delta_C = C0-C, #baseline minus int
-         rel_delta_C = ((C0-C)/C)*100)
+         rel_delta_C = ((C0-C)/C0)*100)
 
 model_results_df_all %>%
   filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
@@ -467,12 +467,12 @@ model_results_main <- model_results_df %>%
 model_results_all_main <- model_results_main %>%
   left_join(model_results_base_main[,c("t", "C0", "mu_v", "M0", "m0")]) %>% # let it auto-select the columns to join by
   mutate(delta_C = C0-C, 
-         rel_delta_C = ((C0-C)/C)*100)
+         rel_delta_C = ((C0-C)/C0)*100)
 
 #take measurements of prevalence averted at day 10, day 30 and 90
 scenario_pals <- c('#1b9e77','#d95f02','#7570b3') #colour for each product
 
-mosq_killed_dynamics <- ggplot(model_results_all_main, aes(x = t, y = D, col = as.factor(delta_t)))+
+mosq_killed_dynamics <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y = D, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
@@ -487,7 +487,7 @@ mosq_killed_dynamics <- ggplot(model_results_all_main, aes(x = t, y = D, col = a
   ylab("Number of mosquitoes killed by \n intervention")+
   ylim(0,2000)
 
-prev_dynamics <- ggplot(model_results_all_main, aes(x = t, y = (I_h/N)*100, col = as.factor(label)))+
+prev_dynamics <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y = (I_h/N)*100, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
   #geom_line(data = model_results_base_df, aes(x = t, y = I_h/N, col = "baseline"), linetype = "dashed")+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
@@ -503,7 +503,7 @@ prev_dynamics <- ggplot(model_results_all_main, aes(x = t, y = (I_h/N)*100, col 
   ylab("Prevalence (%)")+
   ylim(0, 24)
 
-delta_C_dynamics <- ggplot(model_results_all_main, aes(x = t, y = delta_C, col = as.factor(label)))+
+delta_C_dynamics <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y = delta_C, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
@@ -514,10 +514,10 @@ delta_C_dynamics <- ggplot(model_results_all_main, aes(x = t, y = delta_C, col =
   scale_colour_manual(name = "Duration of killing (days)", values = c(scenario_pals[1], 
                                                                       scenario_pals[2], 
                                                                       scenario_pals[3]))+
-  guides(col = "none")+
+  theme(legend.position = c(0.7, 0.7))+
   ylab("Difference in number of cases \n compared to baseline")
 
-mosq_dynamics <- ggplot(model_results_all_main, aes(x = t, y = M, col = as.factor(label)))+
+mosq_dynamics <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y = M, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
@@ -532,7 +532,7 @@ mosq_dynamics <- ggplot(model_results_all_main, aes(x = t, y = M, col = as.facto
   ylab("Mosquito population size")+
   ylim(0, 1000)
   
-Re_t_plot <- ggplot(model_results_all_main, aes(x = t, y = Re_t, col = as.factor(label)))+
+Re_t_plot <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y = Re_t, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
@@ -547,7 +547,7 @@ Re_t_plot <- ggplot(model_results_all_main, aes(x = t, y = Re_t, col = as.factor
   ylab("Re(t)")+
   ylim(0, 2)
 
-R0_t_plot <- ggplot(model_results_all_main, aes(x = t, y = R0_t, col = as.factor(label)))+
+R0_t_plot <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y = R0_t, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
@@ -562,11 +562,13 @@ R0_t_plot <- ggplot(model_results_all_main, aes(x = t, y = R0_t, col = as.factor
   ylab("R0(t)")+
   ylim(0, 30)
 
-fig_1 <- cowplot::plot_grid(mosq_killed_dynamics, mosq_dynamics, prev_dynamics,
-                            labels = c("A", "B", "C"))
+fig_1 <- cowplot::plot_grid(mosq_killed_dynamics, mosq_dynamics, 
+                            
+                            labels = c("A", "B"))
 
-fig_2 <- cowplot:: plot_grid(Re_t_plot, R0_t_plot, delta_C_dynamics, 
-                             labels = c("A", "B", "C"))
+fig_2 <- cowplot:: plot_grid(prev_dynamics,delta_C_dynamics,
+                             Re_t_plot, R0_t_plot, 
+                             labels = c("A", "B", "C", "D"))
 
 
 #which has a greater epi impact?
@@ -574,6 +576,9 @@ fig_2 <- cowplot:: plot_grid(Re_t_plot, R0_t_plot, delta_C_dynamics,
 ggplot(model_results_base_df, aes(x =t, y = I_h/N, col = as.factor(label)))+
   geom_line()+
   ylim(0,1)
+
+ggplot(model_results_base_df, aes(x =t, y = C0, col = as.factor(label)))+
+  geom_line()
 
 ggplot(model_results_df, aes(x =t, y = I_h/N, col = as.factor(label)))+
   geom_line()
@@ -634,42 +639,58 @@ model_all_summary <- do.call("rbind", list(model_all_summary_d10, model_all_summ
 #compare diff in prevalence
 summary_impact <- left_join(model_all_summary, model_base_epi, by = c("m0", "mu_v")) %>%
   mutate(abs_diff_prev = mean_prev_baseline - mean_prev_int, 
-         rel_diff_prev = ((mean_prev_baseline - mean_prev_int)/mean_prev_int)*100, 
+         rel_diff_prev = ((mean_prev_baseline - mean_prev_int)/mean_prev_baseline)*100, 
          
          abs_diff_C = mean_C0_baseline - mean_C_int, 
-         rel_diff_C = ((mean_C0_baseline - mean_C_int)/mean_C_int)*100)
+         rel_diff_C = ((mean_C0_baseline - mean_C_int)/mean_C0_baseline)*100, 
+         
+         abs_diff_Re = mean_Re_t_baseline - mean_Re_t_int, 
+         rel_diff_Re = ((mean_Re_t_baseline - mean_Re_t_int)/mean_Re_t_baseline)*100, 
+         
+         abs_diff_R0 = mean_R0_t_baseline - mean_R0_t_int, 
+         rel_diff_R0 = ((mean_R0_t_baseline - mean_R0_t_int)/ mean_R0_t_baseline)*100)
 
 scenario_pals2 <- c(scenario_pals, '#e7298a')
 
 rel_diff_prev_plot <- summary_impact %>%
   filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
   ggplot()+
-  aes(x = as.factor(delta_t), y = rel_diff_prev, fill = as.factor(measurement_t))+
+  aes(x = as.factor(measurement_t), y = rel_diff_prev, fill = as.factor(delta_t))+
   geom_bar(stat = "identity", position = position_dodge())+
-  xlab("Duration of killing")+
-  ylab("Relative difference in prevalence compared to baseline")+
+  xlab("Time of measurement (days) after intervention on")+
+  ylab("Relative difference (%) in prevalence compared to baseline")+
   theme_bw()+
-  scale_fill_manual(name = "Time of measurement", labels = c("10 days after int on", 
-                                                             "30 days after int on", 
-                                                             "90 days after int on", 
-                                                             "When mosq pop back to eqm"), 
-                    values = scenario_pals2)
+  scale_fill_manual(name = "Intervention's duration of killing (days)", 
+                    values = scenario_pals)+
+  guides(fill = "none")
 
 abs_diff_prev_plot <- summary_impact %>%
   filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
   ggplot()+
-  aes(x = as.factor(delta_t), y = abs_diff_prev, fill = as.factor(measurement_t))+
+  aes(x = as.factor(measurement_t), y = abs_diff_prev, fill = as.factor(delta_t))+
   geom_bar(stat = "identity", position = position_dodge())+
-  xlab("Duration of killing")+
+  xlab("Time of measurement (days) after intervention on")+
   ylab("Absolute difference in prevalence compared to baseline")+
   theme_bw()+
-  scale_fill_manual(name = "Time of measurement", labels = c("10 days after int on", 
-                                                               "30 days after int on", 
-                                                               "90 days after int on", 
-                                                               "When mosq pop back to eqm"), 
-                      values = scenario_pals2)
+  scale_fill_manual(name = "Intervention's duration of killing (days)", 
+                    values = scenario_pals)
+
+rel_diff_Re <- summary_impact %>%
+  filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
+  ggplot()+
+  aes(x = as.factor(measurement_t), y = rel_diff_Re, fill = as.factor(delta_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  xlab("Time of measurement (days) after intervention on")+
+  ylab("Relative difference (%) in Rt compared to baseline")+
+  theme_bw()+
+  scale_fill_manual(name = "Intervention's duration of killing (days)", 
+                    values = scenario_pals)+
+  theme(legend.position = c(0.8, 0.8))
   
-cowplot::plot_grid(rel_diff_prev_plot, abs_diff_prev_plot)
+fig_3 <- cowplot::plot_grid(rel_diff_prev_plot, rel_diff_Re, 
+                            labels = c("A", "B"))
+
+
 
 #generic facet wrap
 
@@ -687,6 +708,7 @@ summary_impact %>%
                                                              "When mosq pop back to eqm"), 
                     values = scenario_pals2)
 
+#another way to show this. 
 low_endemicity_facet <- summary_impact %>%
   filter(m0 == 1) %>%
   ggplot()+
@@ -702,18 +724,73 @@ low_endemicity_facet <- summary_impact %>%
                                                              "When mosq pop back to eqm"), 
                     values = scenario_pals2)
 
+#think it is clearer this way, emphasis is on how measured impact varies depending on time of measurement. 
+low_endemicity_facet <- summary_impact %>%
+  filter(m0 == 1) %>%
+  ggplot()+
+  aes(x = as.factor(measurement_t), y = rel_diff_prev, fill = as.factor(delta_t), 
+      col = as.factor(delta_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  facet_wrap(vars(mu_v, delta_D, m0), labeller = label_both)+
+  xlab("Time of measurement (days) after intervention on")+
+  ylab("Relative difference in prevalence compared to baseline (%)")+
+  theme_bw() +
+  scale_fill_manual(name = "Intervention's duration of killing (days)", 
+                    values = scenario_pals)+
+  scale_colour_manual(name = "Intervention's duration of killing (days)", 
+                   values = scenario_pals)+
+  guides(col = "none")+
+  theme(legend.position = c(0.1, 0.8))
+#
+
+
+
+Re_facet <- summary_impact %>%
+  filter(m0 == 1) %>%
+  ggplot()+
+  aes(x = as.factor(measurement_t), y = abs_diff_Re, fill = as.factor(delta_t), 
+      col = as.factor(delta_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  facet_wrap(vars(mu_v, delta_D, m0), labeller = label_both)+
+  xlab("Time of measurement (days) after intervention on")+
+  ylab("Absolute difference in Re compared to baseline")+
+  theme_bw() +
+  scale_fill_manual(name = "Intervention's duration of killing (days)", 
+                    values = scenario_pals)+
+  scale_colour_manual(name = "Intervention's duration of killing (days)", 
+                      values = scenario_pals)+
+  guides(col = "none")+
+  theme(legend.position = c(0.3, 0.1))
+
+
+
+R0_facet <- summary_impact %>%
+  filter(m0 == 1) %>%
+  ggplot()+
+  aes(x = as.factor(measurement_t), y = abs_diff_R0, fill = as.factor(delta_t), 
+      col = as.factor(delta_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  facet_wrap(vars(mu_v, delta_D, m0), labeller = label_both)+
+  xlab("Time of measurement (days) after intervention on")+
+  ylab("Absolute difference in R0 compared to baseline")+
+  theme_bw() +
+  scale_fill_manual(name = "Intervention's duration of killing (days)", 
+                    values = scenario_pals)+
+  scale_colour_manual(name = "Intervention's duration of killing (days)", 
+                      values = scenario_pals)+
+  guides(col = "none")
+
+
+
 high_endemicity_facet <- summary_impact %>%
   filter(m0 == 200) %>%
   ggplot()+
-  aes(x = as.factor(delta_t), y = rel_diff_prev, fill = as.factor(measurement_t))+
+  aes(x = as.factor(measurement_t), y = rel_diff_prev, fill = as.factor(delta_t))+
   geom_bar(stat = "identity", position = position_dodge())+
   facet_wrap(vars(mu_v, delta_D, m0), labeller = label_both)+
   xlab("Duration of killing")+
-  ylab("Absolute difference in prevalence compared to baseline (%)")+
+  ylab("Relative difference in prevalence compared to baseline (%)")+
   theme_bw()+
-  scale_fill_manual(name = "Time of measurement", labels = c("10 days after int on", 
-                                                             "30 days after int on", 
-                                                             "90 days after int on", 
-                                                             "When mosq pop back to eqm"), 
-                    values = scenario_pals2)
+  scale_fill_manual(name = "Intervention's duration of killing (days)", 
+                    values = scenario_pals)
 
