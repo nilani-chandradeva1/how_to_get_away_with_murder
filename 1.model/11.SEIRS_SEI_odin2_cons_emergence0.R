@@ -9,7 +9,7 @@ params_base <- list(
   N0 = 1000,              # Initial human population (should remain constant)
   
   #M0 = 2000,              # Initial mosquito population. Change to change V/H ratio and endemicity
-  M0 = c(1000,2000),
+  M0 = c(200000, 1000),
   
   mu_h = 1 / (70 * 365),  # Human natural death rate
   ## (WHO Life Tables; 70y life expectancy)
@@ -308,7 +308,7 @@ model_results_df <- dplyr::bind_rows(model_results)
 unique(model_results_df$delta_D)
 unique(model_results_df$M0)
 unique(model_results_df$mu_v)
-
+unique(model_results_df$m0)
 #also run a baseline scenario: no interventions 
 
 grid_baseline <- expand.grid(
@@ -388,10 +388,16 @@ model_results_df <- model_results_df %>%
                         ", mu_v= ", mu_v))
 unique(model_results_df$label)
 
+model_results_df %>%
+  filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
+
 model_results_df_all <- model_results_df %>%
-  left_join(model_results_base_df[,c("t", "C0")], by = c("t")) %>%
+  left_join(model_results_base_df[,c("t", "C0", "mu_v", "M0", "m0")]) %>% #let it auto-select joining cols
   mutate(delta_C = C0-C, #baseline minus int
-         rel_delta_C = ((C0-C)/C0)*100)
+         rel_delta_C = ((C0-C)/C)*100)
+
+model_results_df_all %>%
+  filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
 
 range(model_results_df_all$rel_delta_C, na.rm = TRUE) 
 range(model_results_df_all$delta_C, na.rm = TRUE)
@@ -447,33 +453,37 @@ saveRDS(model_results_base_df, file = "2.output/model_results_base_df_constant_e
 #plots for analysis####
 
 #first look at killing 1000 out of 2000 mosquitoes (50%) at 2:1 vector to host ratio (2000 mosq to 1000 people)
-death_rates <- unique(params_base$mu_v)
+mu_v_vec <- unique(params_base$mu_v)
 M0_vec <- unique(params_base$M0)
 delta_D_vec <- unique(params_base$delta_D)
 m0_vec <- unique(params_base$m0)
 
 model_results_base_main <- model_results_base_df %>%
-  filter(m0 == m0_vec & mu_v == mu_v_vec[1] & M0 == M0_vec[2])
+  filter(m0 == m0_vec[2] & mu_v == mu_v_vec[1] & M0 == M0_vec[2])
 
 model_results_main <- model_results_df %>%
-  filter(delta_D == delta_D_vec[2] & M0 == M0_vec[2] & mu_v == mu_v_vec[1])
+  filter(delta_D == delta_D_vec[2] & M0 == M0_vec[2] & mu_v == mu_v_vec[1] & m0 == m0_vec[2])
 
 model_results_all_main <- model_results_main %>%
-  left_join(model_results_base_main[,c("t", "C0", "mu_v", "M0")]) %>% # let it auto-select the columns to join by
+  left_join(model_results_base_main[,c("t", "C0", "mu_v", "M0", "m0")]) %>% # let it auto-select the columns to join by
   mutate(delta_C = C0-C, 
-         rel_delta_C = ((C0-C)/C0)*100)
+         rel_delta_C = ((C0-C)/C)*100)
 
 #take measurements of prevalence averted at day 10, day 30 and 90
+scenario_pals <- c('#1b9e77','#d95f02','#7570b3') #colour for each product
 
-mosq_killed_dynamics <- ggplot(model_results_all_main, aes(x = t, y = D, col = as.factor(label)))+
+mosq_killed_dynamics <- ggplot(model_results_all_main, aes(x = t, y = D, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 250, linetype = "dotted", linewidth = 1.1, col = "grey")+
   theme_bw()+
-  guides(col = "none")+
-  labs(col = "Scenario")+
+  theme(legend.position = c(0.6, 0.8))+
+  scale_colour_manual(name = "Duration of killing (days)", values = c(scenario_pals[1], 
+                                                    scenario_pals[2], 
+                                                    scenario_pals[3]))+
   ylab("Number of mosquitoes killed by \n intervention")+
   ylim(0,2000)
 
@@ -484,7 +494,11 @@ prev_dynamics <- ggplot(model_results_all_main, aes(x = t, y = (I_h/N)*100, col 
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 250, linetype = "dotted", linewidth = 1.1, col = "grey")+
   theme_bw()+
+  scale_colour_manual(name = "Duration of killing (days)", values = c(scenario_pals[1], 
+                                                                      scenario_pals[2], 
+                                                                      scenario_pals[3]))+
   guides(col = "none")+
   ylab("Prevalence (%)")+
   ylim(0, 24)
@@ -495,7 +509,11 @@ delta_C_dynamics <- ggplot(model_results_all_main, aes(x = t, y = delta_C, col =
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 250, linetype = "dotted", linewidth = 1.1, col = "grey")+
   theme_bw()+
+  scale_colour_manual(name = "Duration of killing (days)", values = c(scenario_pals[1], 
+                                                                      scenario_pals[2], 
+                                                                      scenario_pals[3]))+
   guides(col = "none")+
   ylab("Difference in number of cases \n compared to baseline")
 
@@ -505,22 +523,59 @@ mosq_dynamics <- ggplot(model_results_all_main, aes(x = t, y = M, col = as.facto
   geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
   geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 250, linetype = "dotted", linewidth = 1.1, col = "grey")+
   theme_bw()+
-  theme(legend.position = c(0.6, 0.3))+
+  scale_colour_manual(name = "Duration of killing (days)", values = c(scenario_pals[1], 
+                                                                      scenario_pals[2], 
+                                                                      scenario_pals[3]))+
+  guides(col = "none")+
   ylab("Mosquito population size")+
-  ylim(0, 2000)
+  ylim(0, 1000)
+  
+Re_t_plot <- ggplot(model_results_all_main, aes(x = t, y = Re_t, col = as.factor(label)))+
+  geom_line(linewidth = 1.1)+
+  geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 250, linetype = "dotted", linewidth = 1.1, col = "grey")+
+  theme_bw()+
+  scale_colour_manual(name = "Duration of killing (days)", values = c(scenario_pals[1], 
+                                                                      scenario_pals[2], 
+                                                                      scenario_pals[3]))+
+  guides(col = "none")+
+  ylab("Re(t)")+
+  ylim(0, 2)
 
-fig_1 <- cowplot::plot_grid(mosq_killed_dynamics, mosq_dynamics, 
-                            prev_dynamics, delta_C_dynamics, 
-                            labels = c("A", "B", "C", "D"))
+R0_t_plot <- ggplot(model_results_all_main, aes(x = t, y = R0_t, col = as.factor(label)))+
+  geom_line(linewidth = 1.1)+
+  geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 250, linetype = "dotted", linewidth = 1.1, col = "grey")+
+  theme_bw()+
+  scale_colour_manual(name = "Duration of killing (days)", values = c(scenario_pals[1], 
+                                                                      scenario_pals[2], 
+                                                                      scenario_pals[3]))+
+  guides(col = "none")+
+  ylab("R0(t)")+
+  ylim(0, 30)
+
+fig_1 <- cowplot::plot_grid(mosq_killed_dynamics, mosq_dynamics, prev_dynamics,
+                            labels = c("A", "B", "C"))
+
+fig_2 <- cowplot:: plot_grid(Re_t_plot, R0_t_plot, delta_C_dynamics, 
+                             labels = c("A", "B", "C"))
 
 
 #which has a greater epi impact?
 
 ggplot(model_results_base_df, aes(x =t, y = I_h/N, col = as.factor(label)))+
-  geom_line()
+  geom_line()+
+  ylim(0,1)
 
-ggplot(model_results_df_all, aes(x =t, y = I_h/N, col = as.factor(label)))+
+ggplot(model_results_df, aes(x =t, y = I_h/N, col = as.factor(label)))+
   geom_line()
 
 #summary stats for baseline scenario (nothing changes over time, so don't need to filter by time here)
@@ -529,66 +584,136 @@ model_base_epi <- model_results_base_df %>%
   group_by(m0, mu_v, M0) %>%
   summarise(mean_prev_baseline = mean(I_h/N), 
           mean_R0_t_baseline = mean(R0_t), 
-          mean_Re_t_baseline = mean(Re_t)) 
+          mean_Re_t_baseline = mean(Re_t), 
+          mean_C0_baseline = mean(C0)) 
 
 
-model_all_summary_d10 <- model_results_df_all %>%
+model_all_summary_d10 <- model_results_df %>%
   filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[1])) %>%
   group_by(delta_t, delta_D, m0, mu_v, M0) %>%
   summarise(
     mean_prev_int = mean(I_h/N),
     mean_R0_t_int = mean(R0_t), 
-    mean_Re_t_int = mean(Re_t)) %>%
+    mean_Re_t_int = mean(Re_t), 
+    mean_C_int = mean(C)) %>%
   mutate(measurement_t = params_base$delta_t_vec[1])
 
-model_all_summary_d30 <- model_results_df_all %>%
+model_all_summary_d30 <- model_results_df%>%
   filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[2])) %>%
   group_by(delta_t, delta_D, m0, mu_v, M0) %>%
   summarise(
     mean_prev_int = mean(I_h/N),
     mean_R0_t_int = mean(R0_t), 
-    mean_Re_t_int = mean(Re_t))%>%
+    mean_Re_t_int = mean(Re_t), 
+    mean_C_int = mean(C))%>%
   mutate(measurement_t = params_base$delta_t_vec[2])
 
-model_all_summary_d90 <- model_results_df_all %>%
+model_all_summary_d90 <- model_results_df%>%
   filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[3])) %>%
   group_by(delta_t, delta_D, m0, mu_v, M0) %>%
   summarise(
     mean_prev_int = mean(I_h/N),
     mean_R0_t_int = mean(R0_t), 
-    mean_Re_t_int = mean(Re_t))%>%
+    mean_Re_t_int = mean(Re_t), 
+    mean_C_int = mean(C))%>%
   mutate(measurement_t = params_base$delta_t_vec[3])
 
-model_all_summary_d300 <- model_results_df_all %>%
-  filter(between(t, params_base$tau, 300)) %>% #all back to eqm now
+model_all_summary_d350 <- model_results_df %>%
+  filter(between(t, params_base$tau, 350)) %>% #all back to eqm now in mosq pop
   group_by(delta_t, delta_D, m0, mu_v, M0) %>%
   summarise(
     mean_prev_int = mean(I_h/N),
     mean_R0_t_int = mean(R0_t), 
-    mean_Re_t_int = mean(Re_t))%>%
-  mutate(measurement_t = 300)
+    mean_Re_t_int = mean(Re_t), 
+    mean_C_int = mean(C))%>%
+  mutate(measurement_t = 350)
 
 
-model_all_summary <- do.call("rbind", list(model_all_summary_d10, model_all_summary_d30, model_all_summary_d90, model_all_summary_d300))
+model_all_summary <- do.call("rbind", list(model_all_summary_d10, model_all_summary_d30, model_all_summary_d90, model_all_summary_d350))
 
 #compare diff in prevalence
-summary_impact <- left_join(model_all_summary, model_base_epi, by = c("m0", "M0", "mu_v")) %>%
+summary_impact <- left_join(model_all_summary, model_base_epi, by = c("m0", "mu_v")) %>%
   mutate(abs_diff_prev = mean_prev_baseline - mean_prev_int, 
-         rel_diff_prev = ((mean_prev_baseline - mean_prev_int)/mean_prev_baseline)*100)
+         rel_diff_prev = ((mean_prev_baseline - mean_prev_int)/mean_prev_int)*100, 
+         
+         abs_diff_C = mean_C0_baseline - mean_C_int, 
+         rel_diff_C = ((mean_C0_baseline - mean_C_int)/mean_C_int)*100)
+
+scenario_pals2 <- c(scenario_pals, '#e7298a')
 
 rel_diff_prev_plot <- summary_impact %>%
-  filter(mu_v == 0.10 & delta_D == 1000 & m0 ==2 & M0 == 2000) %>%
+  filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
   ggplot()+
   aes(x = as.factor(delta_t), y = rel_diff_prev, fill = as.factor(measurement_t))+
   geom_bar(stat = "identity", position = position_dodge())+
   xlab("Duration of killing")+
-  ylab("Absolute difference in prevalence compared to baseline")
+  ylab("Relative difference in prevalence compared to baseline")+
+  theme_bw()+
+  scale_fill_manual(name = "Time of measurement", labels = c("10 days after int on", 
+                                                             "30 days after int on", 
+                                                             "90 days after int on", 
+                                                             "When mosq pop back to eqm"), 
+                    values = scenario_pals2)
 
 abs_diff_prev_plot <- summary_impact %>%
-  filter(mu_v == 0.10 & delta_D == 1000 & m0 ==2 & M0 == 2000) %>%
+  filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
   ggplot()+
   aes(x = as.factor(delta_t), y = abs_diff_prev, fill = as.factor(measurement_t))+
   geom_bar(stat = "identity", position = position_dodge())+
   xlab("Duration of killing")+
-  ylab("Relative difference in prevalence compared to baseline (%)")
+  ylab("Absolute difference in prevalence compared to baseline")+
+  theme_bw()+
+  scale_fill_manual(name = "Time of measurement", labels = c("10 days after int on", 
+                                                               "30 days after int on", 
+                                                               "90 days after int on", 
+                                                               "When mosq pop back to eqm"), 
+                      values = scenario_pals2)
   
+cowplot::plot_grid(rel_diff_prev_plot, abs_diff_prev_plot)
+
+#generic facet wrap
+
+summary_impact %>%
+  ggplot()+
+  aes(x = as.factor(delta_t), y = abs_diff_prev, fill = as.factor(measurement_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  facet_wrap(vars(mu_v, delta_D, m0), labeller = label_both)+
+  xlab("Duration of killing")+
+  ylab("Absolute difference in prevalence compared to baseline")+
+  theme_bw()+
+  scale_fill_manual(name = "Time of measurement", labels = c("10 days after int on", 
+                                                             "30 days after int on", 
+                                                             "90 days after int on", 
+                                                             "When mosq pop back to eqm"), 
+                    values = scenario_pals2)
+
+low_endemicity_facet <- summary_impact %>%
+  filter(m0 == 1) %>%
+  ggplot()+
+  aes(x = as.factor(delta_t), y = rel_diff_prev, fill = as.factor(measurement_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  facet_wrap(vars(mu_v, delta_D, m0), labeller = label_both)+
+  xlab("Duration of killing")+
+  ylab("Relative difference in prevalence compared to baseline (%)")+
+  theme_bw()+
+  scale_fill_manual(name = "Time of measurement", labels = c("10 days after int on", 
+                                                             "30 days after int on", 
+                                                             "90 days after int on", 
+                                                             "When mosq pop back to eqm"), 
+                    values = scenario_pals2)
+
+high_endemicity_facet <- summary_impact %>%
+  filter(m0 == 200) %>%
+  ggplot()+
+  aes(x = as.factor(delta_t), y = rel_diff_prev, fill = as.factor(measurement_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  facet_wrap(vars(mu_v, delta_D, m0), labeller = label_both)+
+  xlab("Duration of killing")+
+  ylab("Absolute difference in prevalence compared to baseline (%)")+
+  theme_bw()+
+  scale_fill_manual(name = "Time of measurement", labels = c("10 days after int on", 
+                                                             "30 days after int on", 
+                                                             "90 days after int on", 
+                                                             "When mosq pop back to eqm"), 
+                    values = scenario_pals2)
+
