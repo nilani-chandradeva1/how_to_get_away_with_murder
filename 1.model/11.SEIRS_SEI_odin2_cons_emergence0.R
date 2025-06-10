@@ -310,12 +310,17 @@ unique(model_results_df$M0)
 unique(model_results_df$mu_v)
 
 #also run a baseline scenario: no interventions 
+
+grid_baseline <- expand.grid(
+                    M0 = params_base$M0, 
+                    mu_v = params_base$mu_v)
+
 param_grid_base <- tibble(
   delta_t = 0, 
   psi = 0, 
   delta_D = 0,
-  M0 = params_base$M0, 
-  mu_v = params_base$mu_v
+  M0 = grid_baseline$M0, 
+  mu_v = grid_baseline$mu_v
 )
 
 model_results_base <- vector("list", nrow(param_grid_base))
@@ -437,50 +442,37 @@ model_results_base_df <- model_results_base_df %>%
 saveRDS(model_results_base_df, file = "2.output/model_results_base_df_constant_emergence_TRUE.rds")
 
 
-#which averts more cases?
-
-model_base <- model_results_base_df %>%
-  group_by(m0, mu_v) %>%
-  summarise(mean_prev = mean(I_h/N)) %>%
-  mutate(scenario = "baseline")
-
-model_all_summary <- model_results_df_all %>%
-  group_by(delta_t, delta_D, m0, mu_v) %>%
-  summarise(max_delta_C = max(delta_C), #maximum cases averted is by the sharp intervention
-            total_delta_C = sum(delta_C), 
-            max_rel_delta_C = max(rel_delta_C, na.rm = TRUE), 
-            mean_prev = mean(I_h/N))%>% 
-  mutate(scenario = "intervention")
-
-model_compare <- left_join(model_all_summary, model_base, by = c("m0","mu_v"))
-
-
 
 
 #plots for analysis####
 
 #first look at killing 1000 out of 2000 mosquitoes (50%) at 2:1 vector to host ratio (2000 mosq to 1000 people)
+death_rates <- unique(params_base$mu_v)
+M0_vec <- unique(params_base$M0)
+delta_D_vec <- unique(params_base$delta_D)
+m0_vec <- unique(params_base$m0)
+
 model_results_base_main <- model_results_base_df %>%
-  filter(m0 == 2)
+  filter(m0 == m0_vec & mu_v == mu_v_vec[1] & M0 == M0_vec[2])
 
 model_results_main <- model_results_df %>%
-  filter(delta_D == 1000 & M0 == 2000)
+  filter(delta_D == delta_D_vec[2] & M0 == M0_vec[2] & mu_v == mu_v_vec[1])
 
 model_results_all_main <- model_results_main %>%
-  left_join(model_results_base_main[,c("t", "C0")], by = c("t")) %>%
+  left_join(model_results_base_main[,c("t", "C0", "mu_v", "M0")]) %>% # let it auto-select the columns to join by
   mutate(delta_C = C0-C, 
          rel_delta_C = ((C0-C)/C0)*100)
 
-
-model_results_all_main %>%
-  group_by(delta_t, delta_D, m0) %>%
-  summarise(max_delta_C = max(delta_C))
+#take measurements of prevalence averted at day 10, day 30 and 90
 
 mosq_killed_dynamics <- ggplot(model_results_all_main, aes(x = t, y = D, col = as.factor(label)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
   theme_bw()+
-  theme(legend.position = c(0.7, 0.9))+
+  guides(col = "none")+
   labs(col = "Scenario")+
   ylab("Number of mosquitoes killed by \n intervention")+
   ylim(0,2000)
@@ -489,14 +481,20 @@ prev_dynamics <- ggplot(model_results_all_main, aes(x = t, y = (I_h/N)*100, col 
   geom_line(linewidth = 1.1)+
   #geom_line(data = model_results_base_df, aes(x = t, y = I_h/N, col = "baseline"), linetype = "dashed")+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
   theme_bw()+
   guides(col = "none")+
   ylab("Prevalence (%)")+
-  ylim(22, 24)
+  ylim(0, 24)
 
 delta_C_dynamics <- ggplot(model_results_all_main, aes(x = t, y = delta_C, col = as.factor(label)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
   theme_bw()+
   guides(col = "none")+
   ylab("Difference in number of cases \n compared to baseline")
@@ -504,8 +502,11 @@ delta_C_dynamics <- ggplot(model_results_all_main, aes(x = t, y = delta_C, col =
 mosq_dynamics <- ggplot(model_results_all_main, aes(x = t, y = M, col = as.factor(label)))+
   geom_line(linewidth = 1.1)+
   geom_vline(xintercept = 100, linetype = "dashed", linewidth = 1.1)+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[1], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[2], linetype = "dotted", linewidth = 1.1, col = "grey")+
+  geom_vline(xintercept = 100 + params_base$delta_t_vec[3], linetype = "dotted", linewidth = 1.1, col = "grey")+
   theme_bw()+
-  guides(col = "none")+
+  theme(legend.position = c(0.6, 0.3))+
   ylab("Mosquito population size")+
   ylim(0, 2000)
 
@@ -514,3 +515,80 @@ fig_1 <- cowplot::plot_grid(mosq_killed_dynamics, mosq_dynamics,
                             labels = c("A", "B", "C", "D"))
 
 
+#which has a greater epi impact?
+
+ggplot(model_results_base_df, aes(x =t, y = I_h/N, col = as.factor(label)))+
+  geom_line()
+
+ggplot(model_results_df_all, aes(x =t, y = I_h/N, col = as.factor(label)))+
+  geom_line()
+
+#summary stats for baseline scenario (nothing changes over time, so don't need to filter by time here)
+
+model_base_epi <- model_results_base_df %>%
+  group_by(m0, mu_v, M0) %>%
+  summarise(mean_prev_baseline = mean(I_h/N), 
+          mean_R0_t_baseline = mean(R0_t), 
+          mean_Re_t_baseline = mean(Re_t)) 
+
+
+model_all_summary_d10 <- model_results_df_all %>%
+  filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[1])) %>%
+  group_by(delta_t, delta_D, m0, mu_v, M0) %>%
+  summarise(
+    mean_prev_int = mean(I_h/N),
+    mean_R0_t_int = mean(R0_t), 
+    mean_Re_t_int = mean(Re_t)) %>%
+  mutate(measurement_t = params_base$delta_t_vec[1])
+
+model_all_summary_d30 <- model_results_df_all %>%
+  filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[2])) %>%
+  group_by(delta_t, delta_D, m0, mu_v, M0) %>%
+  summarise(
+    mean_prev_int = mean(I_h/N),
+    mean_R0_t_int = mean(R0_t), 
+    mean_Re_t_int = mean(Re_t))%>%
+  mutate(measurement_t = params_base$delta_t_vec[2])
+
+model_all_summary_d90 <- model_results_df_all %>%
+  filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[3])) %>%
+  group_by(delta_t, delta_D, m0, mu_v, M0) %>%
+  summarise(
+    mean_prev_int = mean(I_h/N),
+    mean_R0_t_int = mean(R0_t), 
+    mean_Re_t_int = mean(Re_t))%>%
+  mutate(measurement_t = params_base$delta_t_vec[3])
+
+model_all_summary_d300 <- model_results_df_all %>%
+  filter(between(t, params_base$tau, 300)) %>% #all back to eqm now
+  group_by(delta_t, delta_D, m0, mu_v, M0) %>%
+  summarise(
+    mean_prev_int = mean(I_h/N),
+    mean_R0_t_int = mean(R0_t), 
+    mean_Re_t_int = mean(Re_t))%>%
+  mutate(measurement_t = 300)
+
+
+model_all_summary <- do.call("rbind", list(model_all_summary_d10, model_all_summary_d30, model_all_summary_d90, model_all_summary_d300))
+
+#compare diff in prevalence
+summary_impact <- left_join(model_all_summary, model_base_epi, by = c("m0", "M0", "mu_v")) %>%
+  mutate(abs_diff_prev = mean_prev_baseline - mean_prev_int, 
+         rel_diff_prev = ((mean_prev_baseline - mean_prev_int)/mean_prev_baseline)*100)
+
+rel_diff_prev_plot <- summary_impact %>%
+  filter(mu_v == 0.10 & delta_D == 1000 & m0 ==2 & M0 == 2000) %>%
+  ggplot()+
+  aes(x = as.factor(delta_t), y = rel_diff_prev, fill = as.factor(measurement_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  xlab("Duration of killing")+
+  ylab("Absolute difference in prevalence compared to baseline")
+
+abs_diff_prev_plot <- summary_impact %>%
+  filter(mu_v == 0.10 & delta_D == 1000 & m0 ==2 & M0 == 2000) %>%
+  ggplot()+
+  aes(x = as.factor(delta_t), y = abs_diff_prev, fill = as.factor(measurement_t))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  xlab("Duration of killing")+
+  ylab("Relative difference in prevalence compared to baseline (%)")
+  
