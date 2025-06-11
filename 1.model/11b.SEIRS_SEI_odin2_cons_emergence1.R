@@ -1,7 +1,7 @@
 require(odin)
 require(tidyverse)
 
-constant_emergence <- 1 #if 0, phi = mu*M0, if 1, phi = mu*M
+constant_emergence <- 5 #if 0, phi = mu*M0, if 1, phi = mu*M
 odin::can_compile()
 
 # Define model parameters here
@@ -9,7 +9,7 @@ params_base <- list(
   N0 = 1000,              # Initial human population (should remain constant)
   
   #M0 = 2000,              # Initial mosquito population. Change to change V/H ratio and endemicity
-  M0 = c(1000,2000),
+  M0 = c(200000, 2000),
   
   mu_h = 1 / (70 * 365),  # Human natural death rate
   ## (WHO Life Tables; 70y life expectancy)
@@ -31,7 +31,7 @@ params_base <- list(
   beta_hv = 0.3,
   beta_vh = 0.3,
   
-  mu_v = c(0.1,0.03),              # Mosquito natural death rate or longer-living vector e.g a blackfly
+  mu_v = c(0.1,0.03),       # Mosquito natural death rate or longer-living vector e.g a blackfly
   ## (~10 days lifespan; Lines et al. 1987)
   #
   sigma_v = 1 / 10,       # Mosquito incubation rate (EIP)
@@ -308,14 +308,19 @@ model_results_df <- dplyr::bind_rows(model_results)
 unique(model_results_df$delta_D)
 unique(model_results_df$M0)
 unique(model_results_df$mu_v)
-
+unique(model_results_df$m0)
 #also run a baseline scenario: no interventions 
+
+grid_baseline <- expand.grid(
+  M0 = params_base$M0, 
+  mu_v = params_base$mu_v)
+
 param_grid_base <- tibble(
   delta_t = 0, 
   psi = 0, 
   delta_D = 0,
-  M0 = params_base$M0, 
-  mu_v = params_base$mu_v
+  M0 = grid_baseline$M0, 
+  mu_v = grid_baseline$mu_v
 )
 
 model_results_base <- vector("list", nrow(param_grid_base))
@@ -383,10 +388,16 @@ model_results_df <- model_results_df %>%
                         ", mu_v= ", mu_v))
 unique(model_results_df$label)
 
+model_results_df %>%
+  filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
+
 model_results_df_all <- model_results_df %>%
-  left_join(model_results_base_df[,c("t", "C0")], by = c("t")) %>%
+  left_join(model_results_base_df[,c("t", "C0", "mu_v", "M0", "m0")]) %>% #let it auto-select joining cols
   mutate(delta_C = C0-C, #baseline minus int
          rel_delta_C = ((C0-C)/C0)*100)
+
+model_results_df_all %>%
+  filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
 
 range(model_results_df_all$rel_delta_C, na.rm = TRUE) 
 range(model_results_df_all$delta_C, na.rm = TRUE)
@@ -435,3 +446,4 @@ model_results_base_df <- model_results_base_df %>%
   mutate(constant_emergence = FALSE)
 
 saveRDS(model_results_base_df, file = "2.output/model_results_base_df_constant_emergence_FALSE.rds")
+
