@@ -9,7 +9,7 @@ params_base <- list(
   N0 = 1000,              # Initial human population (should remain constant)
   
   #M0 = 2000,              # Initial mosquito population. Change to change V/H ratio and endemicity
-  M0 = c(200000, 1000),
+  M0 = c(200000, 2000),
   
   mu_h = 1 / (70 * 365),  # Human natural death rate
   ## (WHO Life Tables; 70y life expectancy)
