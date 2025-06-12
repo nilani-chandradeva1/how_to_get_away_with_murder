@@ -266,17 +266,19 @@ model_results_df <- model_results_df %>%
                                  t >= 100 & t <= 250 ~ "150d measure", 
                                  TRUE ~ NA_character_))
 
+model_all_summary <- model_results_df %>%
+  filter(!is.na(time_period)) %>%
+  group_by(m0, mu_v, M0, time_period) %>%
+  slice_max(t, n = 1, with_ties = FALSE) %>%
+  summarise(prev_int = I_h/N, 
+            C = C)
 
 model_all_summary_d10 <- model_results_df %>%
-  filter(time_period == "10d measure") %>%
+  filter(time_period == "10d measure" & t == max(t)) %>%
   group_by(delta_t, delta_D, m0, mu_v, M0) %>%
   summarise(
-    mean_prev_int = mean(I_h/N),
-    mean_R0_t_int = mean(R0_t), 
-    mean_Re_t_int = mean(Re_t), 
-    mean_C_int = mean(C), 
-    tot_prev_int = sum(I_h/N), 
-    tot_C_int = sum(C)) %>%
+    prev_int = I_h/N, 
+    C = C) %>%
   mutate(measurement_t = params_base$delta_t_vec[1])
 
 model_all_summary_d30 <- model_results_df%>%
