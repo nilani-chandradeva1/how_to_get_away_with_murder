@@ -243,19 +243,32 @@ ggplot(model_results_df, aes(x =t, y = C, col = as.factor(label)))+
 
 #summary stats for baseline scenario (nothing changes over time, so don't need to filter by time here)
 
-model_base_epi <- model_results_base_df %>%
-  group_by(m0, mu_v, M0) %>%
-  summarise(mean_prev_baseline = mean(I_h/N), 
-            mean_R0_t_baseline = mean(R0_t), 
-            mean_Re_t_baseline = mean(Re_t), 
-            mean_C0_baseline = mean(C0), 
-            
-            tot_prev_baseline = sum(I_h/N), 
-            tot_C0_baseline = sum(C0)) 
+model_results_base_df <- model_results_base_df %>%
+  mutate(time_period = case_when(t >= 100 & t <= 110 ~ "10d measure", 
+                                 t >= 100 & t <= 130 ~ "30d measure", 
+                                 t >= 100 & t <= 190 ~ "90d measure", 
+                                 t >= 100 & t <= 250 ~ "150d measure", 
+                                 TRUE ~ NA_character_))
+
+
+model_base_epi <- model_results_base_df %>% #want to get the last record from each time period category
+  filter(!is.na(time_period)) %>%
+  group_by(m0, mu_v, M0, time_period) %>%
+  filter(t == max(t)) %>%
+  summarise(prev_baseline = I_h/N, 
+            C0_baseline = C0)
 
 #summary stats for each intervention scenario, depending on days since int that we take the measurement
+model_results_df <- model_results_df %>%
+  mutate(time_period = case_when(t >= 100 & t <= 110 ~ "10d measure", 
+                                 t >= 100 & t <= 130 ~ "30d measure", 
+                                 t >= 100 & t <= 190 ~ "90d measure", 
+                                 t >= 100 & t <= 250 ~ "150d measure", 
+                                 TRUE ~ NA_character_))
+
+
 model_all_summary_d10 <- model_results_df %>%
-  filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[1])) %>%
+  filter(time_period == "10d measure") %>%
   group_by(delta_t, delta_D, m0, mu_v, M0) %>%
   summarise(
     mean_prev_int = mean(I_h/N),
