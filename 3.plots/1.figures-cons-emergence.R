@@ -57,7 +57,7 @@ model_results_df %>%
                                                                       scenario_pals[3]))+
   guides(col = "none")+
   xlab("Time since intervention started (days)")+
-  ylab("Mosquito population size")
+  ylab("Blackfly population size")
 
 #mosquito pop dynamics
 
@@ -132,7 +132,7 @@ mosq_killed_dynamics <- ggplot(model_results_all_main, aes(x = t - params_base$t
                                                                       scenario_pals[3]))+
   ylab("Number of mosquitoes killed by \n intervention")+
   xlab("Time since intervention started (days)")+
-  ylim(0,6000)
+  ylim(0,2000)
 
 prev_dynamics <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y = (I_h/N)*100, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
@@ -165,7 +165,7 @@ delta_C_dynamics <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y 
   theme(legend.position = c(0.7, 0.7))+
   xlab("Time since intervention started (days)")+
   ylab("Reduction in number of cases due to intervention")+
-  ylim(0,30)
+  ylim(0,35)
 
 mosq_dynamics <- ggplot(model_results_all_main, aes(x = t- params_base$tau, y = M, col = as.factor(delta_t)))+
   geom_line(linewidth = 1.1)+
@@ -180,7 +180,8 @@ mosq_dynamics <- ggplot(model_results_all_main, aes(x = t- params_base$tau, y = 
                                                                       scenario_pals[3]))+
   guides(col = "none")+
   xlab("Time since intervention started (days)")+
-  ylab("Mosquito population size")
+  ylab("Mosquito population size")+
+  ylim(0,2000)
 
 
 Re_t_plot <- ggplot(model_results_all_main, aes(x = t-params_base$tau, y = Re_t, col = as.factor(delta_t)))+
@@ -268,145 +269,66 @@ model_results_df <- model_results_df %>%
 
 model_all_summary <- model_results_df %>%
   filter(!is.na(time_period)) %>%
-  group_by(m0, mu_v, M0, time_period) %>%
-  slice_max(t, n = 1, with_ties = FALSE) %>%
-  summarise(prev_int = I_h/N, 
-            C = C)
-
-model_all_summary_d10 <- model_results_df %>%
-  filter(time_period == "10d measure" & t == max(t)) %>%
-  group_by(delta_t, delta_D, m0, mu_v, M0) %>%
-  summarise(
-    prev_int = I_h/N, 
-    C = C) %>%
-  mutate(measurement_t = params_base$delta_t_vec[1])
-
-model_all_summary_d30 <- model_results_df%>%
-  filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[2])) %>%
-  group_by(delta_t, delta_D, m0, mu_v, M0) %>%
-  summarise(
-    mean_prev_int = mean(I_h/N),
-    mean_R0_t_int = mean(R0_t), 
-    mean_Re_t_int = mean(Re_t), 
-    mean_C_int = mean(C), 
-    tot_prev_int = sum(I_h/N), 
-    tot_C_int = sum(C))%>%
-  mutate(measurement_t = params_base$delta_t_vec[2])
-
-model_all_summary_d90 <- model_results_df%>%
-  filter(between(t, params_base$tau, params_base$tau+params_base$delta_t_vec[3])) %>%
-  group_by(delta_t, delta_D, m0, mu_v, M0) %>%
-  summarise(
-    mean_prev_int = mean(I_h/N),
-    mean_R0_t_int = mean(R0_t), 
-    mean_Re_t_int = mean(Re_t), 
-    mean_C_int = mean(C), 
-    tot_prev_int = sum(I_h/N), 
-    tot_C_int = sum(C))%>%
-  mutate(measurement_t = params_base$delta_t_vec[3])
-
-model_all_summary_d150 <- model_results_df %>%
-  filter(between(t, params_base$tau, 250)) %>% #all back to eqm now in mosq pop
-  group_by(delta_t, delta_D, m0, mu_v, M0) %>%
-  summarise(
-    mean_prev_int = mean(I_h/N),
-    mean_R0_t_int = mean(R0_t), 
-    mean_Re_t_int = mean(Re_t), 
-    mean_C_int = mean(C), 
-    tot_prev_int = sum(I_h/N), 
-    tot_C_int = sum(C))%>%
-  mutate(measurement_t = 150)
-
-
-model_all_summary <- do.call("rbind", list(model_all_summary_d10, model_all_summary_d30, model_all_summary_d90, model_all_summary_d150))
+  group_by(m0, mu_v, M0, time_period, delta_t, delta_D) %>%
+  filter(t == max(t)) %>%
+  #slice_max(t, n = 1, with_ties = FALSE) %>%
+  summarise(prev_int = I_h/N, #this is to get the final prevalence value (i.e at the end of the period)
+            C = C) #final number of cases (at the end of the measurement)
 
 #compare diff in prevalence
-summary_impact <- left_join(model_all_summary, model_base_epi) %>%
-  mutate(abs_diff_prev = mean_prev_baseline - mean_prev_int, 
-         rel_diff_prev = ((mean_prev_baseline - mean_prev_int)/mean_prev_baseline)*100, 
-         
-         rel_diff_prev_sum = ((tot_prev_baseline - tot_prev_int)/tot_prev_baseline)*100, 
-         
-         abs_diff_C = mean_C0_baseline - mean_C_int, 
-         rel_diff_C = ((mean_C0_baseline - mean_C_int)/mean_C0_baseline)*100, 
-         
-         rel_diff_C_sum = ((tot_C0_baseline - tot_C_int)/tot_C0_baseline)*100, 
-         
-         abs_diff_Re = mean_Re_t_baseline - mean_Re_t_int, 
-         rel_diff_Re = ((mean_Re_t_baseline - mean_Re_t_int)/mean_Re_t_baseline)*100, 
-         
-         abs_diff_R0 = mean_R0_t_baseline - mean_R0_t_int, 
-         rel_diff_R0 = ((mean_R0_t_baseline - mean_R0_t_int)/ mean_R0_t_baseline)*100)
+summary_impact <- left_join(model_all_summary, model_base_epi) %>% #at each time point, for each scenario, what is rel diff in prev
+  mutate(rel_diff_prev = ((prev_baseline-prev_int)/prev_baseline)*100, 
+         rel_diff_cases = ((C0_baseline-C)/C0_baseline)*100, 
+         abs_diff_cases = C0_baseline-C)
 
 scenario_pals2 <- c(scenario_pals, '#e7298a')
 
+#need to re-order the x axis. Think we can change x axis back to numeric. 
 rel_diff_prev_plot <- summary_impact %>%
   filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
   ggplot()+
-  aes(x = as.factor(measurement_t), y = rel_diff_prev, fill = as.factor(delta_t))+
+  aes(x = factor(time_period, levels = c("10d measure", "30d measure", "90d measure", "150d measure")), y = rel_diff_prev, fill = as.factor(delta_t))+
   geom_bar(stat = "identity", position = position_dodge())+
   xlab("Time of measurement (days) after intervention on")+
-  ylab("Efficacy in prevalence (%) compared to baseline (comparing means)")+
+  ylab("Reduction in point prevalence (%) compared to baseline")+
   theme_bw()+
   scale_fill_manual(name = "Intervention's duration of killing (days)", 
                     values = scenario_pals)+
   theme(legend.position = c(0.7, 0.8))+
-  ylim(0,4)
+  ylim(-2.5, 10)
 
-rel_diff_prev_sum_plot <- summary_impact %>%
+rel_diff_cases_plot <- summary_impact %>%
   filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
   ggplot()+
-  aes(x = as.factor(measurement_t), y = rel_diff_prev_sum, fill = as.factor(delta_t))+
+  aes(x = factor(time_period, levels = c("10d measure", "30d measure", "90d measure", "150d measure")), y = rel_diff_cases, fill = as.factor(delta_t))+
   geom_bar(stat = "identity", position = position_dodge())+
   xlab("Time of measurement (days) after intervention on")+
-  ylab("Efficacy in prevalence (%) compared to baseline (comparing sums)")+
+  ylab("Reduction in cumulative cases (%) compared to baseline")+
   theme_bw()+
   scale_fill_manual(name = "Intervention's duration of killing (days)", 
                     values = scenario_pals)+
-  theme(legend.position = c(0.7, 0.9))
+  theme(legend.position = c(0.7, 0.8))+
+  ylim(0, 7)
 
-rel_diff_cases_sum_plot <- summary_impact %>%
+abs_diff_cases_plot <- summary_impact %>%
   filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
   ggplot()+
-  aes(x = as.factor(measurement_t), y = rel_diff_C_sum, fill = as.factor(delta_t))+
+  aes(x = factor(time_period, levels = c("10d measure", "30d measure", "90d measure", "150d measure")), y = abs_diff_cases, fill = as.factor(delta_t))+
   geom_bar(stat = "identity", position = position_dodge())+
   xlab("Time of measurement (days) after intervention on")+
-  ylab("Efficacy in cases (%) compared to baseline")+
+  ylab("Absolute reduction in cumulative cases compared to baseline")+
   theme_bw()+
   scale_fill_manual(name = "Intervention's duration of killing (days)", 
                     values = scenario_pals)+
-  theme(legend.position = c(0.7, 0.9))
+  theme(legend.position = c(0.7, 0.8))
 
-
-rel_diff_Re <- summary_impact %>%
-  filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
-  ggplot()+
-  aes(x = as.factor(measurement_t), y = rel_diff_Re, fill = as.factor(delta_t))+
-  geom_bar(stat = "identity", position = position_dodge())+
-  xlab("Time of measurement (days) after intervention on")+
-  ylab("Relative reduction (%) in Rt compared to baseline")+
-  theme_bw()+
-  scale_fill_manual(name = "Intervention's duration of killing (days)", 
-                    values = scenario_pals)+
-  theme(legend.position = c(0.6, 0.8))
-
-rel_diff_C <- summary_impact %>%
-  filter(mu_v == mu_v_vec[1] & delta_D == delta_D_vec[2] & m0 ==m0_vec[2] & M0 == M0_vec[2]) %>%
-  ggplot()+
-  aes(x = as.factor(measurement_t), y = rel_diff_C, fill = as.factor(delta_t))+
-  geom_bar(stat = "identity", position = position_dodge())+
-  xlab("Time of measurement (days) after intervention on")+
-  ylab("Efficacy in incidence (%) compared to baseline")+
-  theme_bw()+
-  scale_fill_manual(name = "Intervention's duration of killing (days)", 
-                    values = scenario_pals)+
- guides(fill = "none")
-
-
-fig_3 <- cowplot::plot_grid(rel_diff_prev_plot, rel_diff_C,
-                            labels = c("A", "B"), ncol = 2)
-
+fig_3 <- cowplot::plot_grid(rel_diff_prev_plot, rel_diff_cases_plot, labels = c("A", "B"))
 ggsave(fig_3, file = "3.plots/cons_emerg_epi_impact.svg")
+
+
+
+#up to here. Then next plot is just cases plot. 
+
 
 #generic facet wrap
 
