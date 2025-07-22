@@ -1,9 +1,10 @@
 require(odin)
 require(tidyverse)
 
-constant_emergence <- 5 #if 0, phi = mu*M0, if 1, phi = mu*M
+constant_emergence <- 1 #if 0, phi = mu*M0, if 1, phi = mu*M
 odin::can_compile()
 
+# Define model parameters here
 params_base <- list(
   N0 = 1000,              # Initial human population (should remain constant)
   
@@ -48,10 +49,12 @@ params_base <- list(
   #delta_t_vec = 10
 )
 
+
 params_base$m0 <- with(params_base, {M0 / N0}) # Initial mosquito to human ratio
-#params_base$beta_hv <- with(params_base, {b_hv*a})
-#params_base$beta_vh <- with(params_base, {b_vh*a})
+#params_base$beta_hv <- with(params_base, {b_hv*a}) #pr transmission given bitten, on host from vector
+#params_base$beta_vh <- with(params_base, {b_vh*a}) ##pr transmission given bitten, on vector from host
 params_base$constant_emergence <- constant_emergence
+write_rds(params_base, file = "2.output/params_base.rds")
 
 # --- BASELINE PSI CALCULATION ---
 # This calculates the value of psi required for equal birth and death rates.
@@ -80,7 +83,7 @@ psi_objective_function <- function(psi, Delta_t, delta_D_target, mu_v, M0) {
 # This fits the value of psi that minimises the objective function
 fit_psi <- function(Delta_t, delta_D_target, mu_v, M0) {
   
-  # Use the value of gamma under equal birth and death rates as initial guess
+  # Use the value of gamma under equal birth and death rates as initial guess. ?? do you mean value of psi?
   guess <- baseline_psi(Delta_t, delta_D_target, M0)
   
   # Minimise the objective function
@@ -223,8 +226,7 @@ malaria_model <- odin::odin({
   sigma_h <- user()
   gamma_h <- user()
   constant_emergence <- user()
-  phi <- if(constant_emergence == 0) mu_v*M0 else mu_v*M0 + r*M*(1-M/M0)
-  r <- mu_v
+  phi <- if(constant_emergence == 0) mu_v*M0 else mu_v*M
   beta_vh <- user()
   mu_v <- user()
   sigma_v <- user()
@@ -389,16 +391,12 @@ model_results_df <- model_results_df %>%
                         ", mu_v= ", mu_v))
 unique(model_results_df$label)
 
-model_results_df %>%
-  filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
 
 model_results_df_all <- model_results_df %>%
   left_join(model_results_base_df[,c("t", "C0", "mu_v", "M0", "m0")]) %>% #let it auto-select joining cols
   mutate(delta_C = C0-C, #baseline minus int
          rel_delta_C = ((C0-C)/C0)*100)
 
-model_results_df_all %>%
-  filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
 
 range(model_results_df_all$rel_delta_C, na.rm = TRUE) 
 range(model_results_df_all$delta_C, na.rm = TRUE)
@@ -424,7 +422,7 @@ ggplot(model_results_df, aes(x = t, y = C))+
   facet_wrap(vars(label))+
   geom_line()
 
-ggplot(model_results_base_df, aes(x = t, y = I_h/N))+
+ggplot(model_results_base_df, aes(x = t, y = C0))+
   facet_wrap(vars(label))+
   geom_line()
 
