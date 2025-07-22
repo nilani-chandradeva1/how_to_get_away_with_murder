@@ -26,16 +26,16 @@ params_base <- list(
   #beta_hv = 0.3,          # Daily transmission prob: human to mosquito
   ## (Smith et al. 2012)
   #a = 1/3,                #1 bite every 3 days (Le Menach)
-  #b_hv = 0.05,
-  #b_vh = 0.2,
-  beta_hv = 0.3,
-  beta_vh = 0.3,
+  #b_hv = 0.2, 
+  #b_vh = 0.05,
+  beta_hv = 0.3, #on host from vector
+  beta_vh = 0.3,  #on vector from host
   
-  mu_v = c(0.1,0.03),              # Mosquito natural death rate or longer-living vector e.g a blackfly
-  ## (~10 days lifespan; Lines et al. 1987)
-  #
+  mu_v = 0.1,              # Mosquito natural death rate or longer-living vector e.g a blackfly
+
+    #
   sigma_v = 1 / 10,       # Mosquito incubation rate (EIP)
-  ## (~10 days at 25°C; Guerra et al. 2010)
+  ## (Gu et al, 2003)
   #
   
   #beta_vh = 0.3,          # Daily transmission prob: mosquito to human
@@ -43,15 +43,18 @@ params_base <- list(
   
   tau = 100,              # Start time of intervention (days)
   #delta_D = 1000,          # Target mosquitoes killed
-  delta_D = c(500, 1000),
+  delta_D = c(190000, 1900),
   #times = seq(0, 500, by = 0.1), # All time points inclusive of pre-intervention
   delta_t_vec = c(10, 30, 90) # Intervention durations (days)
   #delta_t_vec = 10
 )
+
+
 params_base$m0 <- with(params_base, {M0 / N0}) # Initial mosquito to human ratio
-#params_base$beta_hv <- with(params_base, {b_hv*a})
-#params_base$beta_vh <- with(params_base, {b_vh*a})
+#params_base$beta_hv <- with(params_base, {b_hv*a}) #pr transmission given bitten, on host from vector
+#params_base$beta_vh <- with(params_base, {b_vh*a}) ##pr transmission given bitten, on vector from host
 params_base$constant_emergence <- constant_emergence
+write_rds(params_base, file = "2.output/params_base.rds")
 
 # --- BASELINE PSI CALCULATION ---
 # This calculates the value of psi required for equal birth and death rates.
@@ -80,7 +83,7 @@ psi_objective_function <- function(psi, Delta_t, delta_D_target, mu_v, M0) {
 # This fits the value of psi that minimises the objective function
 fit_psi <- function(Delta_t, delta_D_target, mu_v, M0) {
   
-  # Use the value of gamma under equal birth and death rates as initial guess
+  # Use the value of gamma under equal birth and death rates as initial guess. ?? do you mean value of psi?
   guess <- baseline_psi(Delta_t, delta_D_target, M0)
   
   # Minimise the objective function
@@ -388,16 +391,12 @@ model_results_df <- model_results_df %>%
                         ", mu_v= ", mu_v))
 unique(model_results_df$label)
 
-model_results_df %>%
-  filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
 
 model_results_df_all <- model_results_df %>%
   left_join(model_results_base_df[,c("t", "C0", "mu_v", "M0", "m0")]) %>% #let it auto-select joining cols
   mutate(delta_C = C0-C, #baseline minus int
          rel_delta_C = ((C0-C)/C0)*100)
 
-model_results_df_all %>%
-  filter(delta_D == 500 & mu_v == 0.03 & m0 == 200 & M0 == 2e+05)
 
 range(model_results_df_all$rel_delta_C, na.rm = TRUE) 
 range(model_results_df_all$delta_C, na.rm = TRUE)
@@ -423,7 +422,7 @@ ggplot(model_results_df, aes(x = t, y = C))+
   facet_wrap(vars(label))+
   geom_line()
 
-ggplot(model_results_base_df, aes(x = t, y = I_h/N))+
+ggplot(model_results_base_df, aes(x = t, y = C0))+
   facet_wrap(vars(label))+
   geom_line()
 
@@ -437,10 +436,14 @@ model_results_df_all <- model_results_df_all %>%
   mutate(prop_killed = delta_D/M0)
 unique(model_results_df_all$prop_killed)
 
+#save output of intervention
+
 model_results_df <- model_results_df %>%
   mutate(constant_emergence = TRUE)
 
 saveRDS(model_results_df, file = "2.output/model_results_df_constant_emergence_TRUE.rds")
+
+#save output of baseline
 
 model_results_base_df <- model_results_base_df %>%
   mutate(constant_emergence = TRUE)
