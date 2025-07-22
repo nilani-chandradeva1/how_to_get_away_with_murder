@@ -4,7 +4,6 @@ require(tidyverse)
 constant_emergence <- 5 #if 0, phi = mu*M0, if 1, phi = mu*M
 odin::can_compile()
 
-# Define model parameters here
 params_base <- list(
   N0 = 1000,              # Initial human population (should remain constant)
   
@@ -26,16 +25,16 @@ params_base <- list(
   #beta_hv = 0.3,          # Daily transmission prob: human to mosquito
   ## (Smith et al. 2012)
   #a = 1/3,                #1 bite every 3 days (Le Menach)
-  #b_hv = 0.05,
-  #b_vh = 0.2,
-  beta_hv = 0.3,
-  beta_vh = 0.3,
+  #b_hv = 0.2, 
+  #b_vh = 0.05,
+  beta_hv = 0.3, #on host from vector
+  beta_vh = 0.3,  #on vector from host
   
-  mu_v = c(0.1,0.03),       # Mosquito natural death rate or longer-living vector e.g a blackfly
-  ## (~10 days lifespan; Lines et al. 1987)
+  mu_v = 0.1,              # Mosquito natural death rate or longer-living vector e.g a blackfly
+  
   #
   sigma_v = 1 / 10,       # Mosquito incubation rate (EIP)
-  ## (~10 days at 25°C; Guerra et al. 2010)
+  ## (Gu et al, 2003)
   #
   
   #beta_vh = 0.3,          # Daily transmission prob: mosquito to human
@@ -43,11 +42,12 @@ params_base <- list(
   
   tau = 100,              # Start time of intervention (days)
   #delta_D = 1000,          # Target mosquitoes killed
-  delta_D = c(500, 1000),
+  delta_D = c(190000, 1900),
   #times = seq(0, 500, by = 0.1), # All time points inclusive of pre-intervention
   delta_t_vec = c(10, 30, 90) # Intervention durations (days)
   #delta_t_vec = 10
 )
+
 params_base$m0 <- with(params_base, {M0 / N0}) # Initial mosquito to human ratio
 #params_base$beta_hv <- with(params_base, {b_hv*a})
 #params_base$beta_vh <- with(params_base, {b_vh*a})
