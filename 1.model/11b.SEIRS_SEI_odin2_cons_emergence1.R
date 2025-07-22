@@ -223,7 +223,8 @@ malaria_model <- odin::odin({
   sigma_h <- user()
   gamma_h <- user()
   constant_emergence <- user()
-  phi <- if(constant_emergence == 0) mu_v*M0 else mu_v*M
+  phi <- if(constant_emergence == 0) mu_v*M0 else mu_v*M0 + r*M*(1-M/M0)
+  r <- mu_v
   beta_vh <- user()
   mu_v <- user()
   sigma_v <- user()
