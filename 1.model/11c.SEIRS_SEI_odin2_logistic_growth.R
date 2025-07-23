@@ -20,7 +20,7 @@ params_base <- list(
   beta_vh = 0.3,            # Transmission prob. vector to human
   mu_v = 0.1,               # Mosquito death rate
   sigma_v = 1 / 10,         # Mosquito incubation rate (EIP)
-  tau = 0,                  # Intervention start time (for fitting psi)
+  tau = 100,                  # Intervention start time (for fitting psi)
   delta_D = 1900,           # Target mosquitoes killed
   constant_emergence = constant_emergence,
   psi = 0.1                 # Initial guess for psi
@@ -202,8 +202,12 @@ grid <- expand.grid(
   delta_t = c(10, 30, 90),
   delta_D = c(190000, 1900),
   M0 = c(200000, 2000),
-  mu_v = params_base$mu_v
+  mu_v = params_base$mu_v, 
+  N0 = params_base$N0, 
+  tau = params_base$tau
 )
+
+write_rds(grid,"2.output_params_base_logistic.rds")
 
 psi_vec <- numeric(nrow(grid))
 
@@ -304,7 +308,9 @@ model_results_df <- model_results_df %>%
          M = S_v+E_v+I_v,
          constant_emergence = FALSE) #we use the logistic growth model 
 
-#saveRDS(model_results_df, file = "2.output/model_results_df_logistic_growth.rds")
+saveRDS(model_results_df, file = "2.output/model_results_df_logistic_growth.rds")
+
+#some plots to check all is well#
 
 model_results_main <- model_results_df %>%
   filter(delta_D == 1900 &  M0 == 2000)
@@ -319,4 +325,104 @@ ggplot(model_results_main, aes(x = t, y = D, col = as.factor(delta_t)))+
 ggplot(model_results_main, aes(x = t, y = M, col = as.factor(delta_t)))+
   geom_line()+
   ylim(0,2000)
+
+ggplot(model_results_main, aes(x = t, y = C, col = as.factor(delta_t)))+
+  geom_line()+
+  ylim(0,2000)
+
+ggplot(model_results_main, aes(x = t, y = I_h/N, col = as.factor(delta_t)))+
+  geom_line()+
+  ylim(0, 0.3)
+
+ggplot(model_results_main, aes(x = t, y = I_v/M, col = as.factor(delta_t)))+
+  geom_line()+
+  ylim(0, 0.3)
+
+#run the baseline scenario
+
+# ------------------------------------------------
+# 8. Pass into the model for baseline scenario
+# ------------------------------------------------
+
+grid_baseline <- expand.grid(M0 = params_base$M0, 
+                             mu_v = params_base$mu_v)
+
+param_grid_base <- tibble(
+  delta_D = 0, 
+  delta_t = 0, 
+  psi =0,            # no intervention
+  M0 = grid_baseline$M0, 
+  mu_v = grid_baseline$mu_v
+)
+
+model_results_base <- vector("list", nrow(param_grid_base))
+
+time_period <- 500  # total simulation time
+
+for (i in seq_len(nrow(param_grid_base))) {
+  in_delta_D <- param_grid_base$delta_D[i]
+  in_delta_t <- param_grid_base$delta_t[i]
+  in_psi <- param_grid_base$psi[i]
+  in_M0 <- param_grid_base$M0[i]
+  in_mu_v <- param_grid_base$mu_v[i]
   
+  # Base parameter list
+  in_params <- params_base
+  in_params$delta_t <- in_delta_t
+  in_params$delta_D <- in_delta_D
+  in_params$M0 <- in_M0
+  in_params$mu_v <- in_mu_v
+  in_params$psi <- in_psi
+  
+  # Update mosquito-human ratio
+  in_params$m0 <- in_M0 / in_params$N0
+  
+  # Compute endemic equilibrium state
+  state <- endemic_eqm(in_params)
+  in_params <- c(as.list(state), in_params)
+  
+  # Time-related inputs
+  in_params$ttt <- seq(0, time_period, by = 1)
+  in_params$n_times <- length(in_params$ttt)
+  in_params$int_on <- rep(in_params$tau, in_params$n_times)
+  
+  # Ensure all required parameters are present
+  required_params <- c(
+    "init_S_h","init_E_h","init_I_h","init_R_h","init_C",
+    "init_S_v","init_E_v","init_I_v","init_D",
+    "N0","M0","mu_h","beta_hv","omega_h","sigma_h","gamma_h",
+    "constant_emergence","beta_vh","mu_v","sigma_v","psi","delta_t",
+    "n_times","int_on","ttt"
+  )
+  
+  missing <- setdiff(required_params, names(in_params))
+  if (length(missing) > 0) {
+    stop(sprintf("Missing parameters: %s", paste(missing, collapse = ", ")))
+  }
+  
+  # Run the model
+  mod <- malaria_model$new(user = in_params)
+  print(glue::glue("Running delta_t = {in_delta_t}, psi = {in_psi}"))
+  
+  out <- mod$run(in_params$ttt, atol = 1e-6, rtol = 1e-6)
+  
+  # Store output
+  model_results_base[[i]] <- cbind(
+    as.data.frame(out),
+    delta_t = in_delta_t, psi = in_psi, 
+    delta_D = in_delta_D, M0 = in_M0, m0 = in_params$m0, 
+    mu_v = in_mu_v
+  )
+}
+
+model_results_base_df <- dplyr::bind_rows(model_results_base)
+
+#save output
+model_results_base_df <- model_results_base_df %>%
+  rename(C0 = C)  %>%
+  mutate(N = S_h+E_h+I_h+R_h, 
+         M = S_v+E_v+I_v,
+         constant_emergence = FALSE) #we use the logistic growth model 
+
+saveRDS(model_results_base_df, file = "2.output/model_results_base_df_logistic_growth.rds")
+
