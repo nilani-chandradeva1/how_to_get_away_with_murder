@@ -74,10 +74,11 @@ mosq_killed_plot <- ggplot(df_all_main, aes(x = t-start_int, y = D, col = as.fac
   ylab("Number of mosquitoes killed by \n intervention")+
   scale_linetype_manual(name = "Adult emergence", labels = c("Carrying capacity", "Constant emergence"), 
                         values = c("solid", "dotdash"))+
-  xlim(-10,300)+
+  #xlim(-10,300)+
   xlab("Time since intervention started (days)")+
-  ylim(0,2000)+
-  scale_colour_manual(values = scenario_pals2)
+  #ylim(0,2000)+
+  scale_colour_manual(values = scenario_pals2)+
+  coord_cartesian(xlim = c(-10, 300), ylim = c(0,2000))
 
 daily_inc_plot <- ggplot(df_all_main, aes(x = t-start_int, y = C_daily, col = as.factor(delta_t), linetype = as.factor(constant_emergence)))+
   geom_line(linewidth = 0.9)+
@@ -89,9 +90,10 @@ daily_inc_plot <- ggplot(df_all_main, aes(x = t-start_int, y = C_daily, col = as
   ylab("Daily incidence")+
   scale_linetype_manual(name = "Adult emergence", labels = c("Carrying capacity", "Constant emergence"), 
                         values = c("solid", "dotdash"))+
-  xlim(-10,300)+
+  #xlim(-10,300)+
   xlab("Time since intervention started (days)")+
-  scale_colour_manual(values = scenario_pals2)
+  scale_colour_manual(values = scenario_pals2)+
+  coord_cartesian(xlim = c(-10, 300))
 
 prevalence_plot <- ggplot(df_all_main, aes(x = t-start_int, y = (I_h/N)*100, col = as.factor(delta_t), linetype = as.factor(constant_emergence)))+
   geom_line(linewidth = 0.9)+
@@ -103,12 +105,13 @@ prevalence_plot <- ggplot(df_all_main, aes(x = t-start_int, y = (I_h/N)*100, col
   ylim(0, 24)+
   scale_linetype_manual(name = "Adult emergence", labels = c("Carrying capacity", "Constant emergence"), 
                        values = c("solid", "dotdash"))+
-  xlim(-10,300)+
+  #xlim(-10,300)+
   xlab("Time since intervention started (days)")+
   #labs(col = "Time to complete MDA")+
   theme(legend.position = c(0.5, 0.5))+
   scale_colour_manual(values = scenario_pals2, labels = c("Baseline (no intervention)", "10 days", "30 days", "90 days"), 
-                      name = "Time taken to kill target mosquitoes")
+                      name = "Time taken to kill target mosquitoes")+
+  coord_cartesian(xlim = c(-10, 300))
 
 
 mosq_pop_plot <- ggplot(df_all_main, aes(x = t-start_int, y = M, col = as.factor(delta_t), linetype = as.factor(constant_emergence)))+
@@ -118,12 +121,13 @@ mosq_pop_plot <- ggplot(df_all_main, aes(x = t-start_int, y = M, col = as.factor
   #theme(legend.position = c(0.7, 0.3))+
   ylab("Mosquito population size")+
   guides(col = "none", linetype = "none")+
-  ylim(0,2000)+
+  #ylim(0,2000)+
   scale_linetype_manual(name = "Adult emergence", labels = c("Carrying capacity", "Constant emergence"), 
                         values = c("solid", "dotdash"))+
   xlim(-10,300)+
   xlab("Time since intervention started (days)")+
-  scale_colour_manual(values = scenario_pals2)
+  scale_colour_manual(values = scenario_pals2)+
+  coord_cartesian(xlim = c(-10, 300), ylim = c(0,2000))
 
 #mosq_Iv_plot <- ggplot(df_all_main, aes(x = t-start_int, y = (I_v/M)*100, col = as.factor(delta_t), linetype = as.factor(constant_emergence)))+
 #  geom_line(linewidth = 0.9)+
@@ -200,7 +204,7 @@ model_int_summary <- model_int_long %>%
 summary_impact <- left_join(model_int_summary, model_base_epi) %>% #at each time period, for each scenario, what is rel diff in prev
   mutate(abs_diff_cases = tot_cases_baseline-tot_cases_int, 
          rel_diff_cases = ((tot_cases_baseline-tot_cases_int)/tot_cases_baseline)*100, 
-         constant_emergence = case_when(constant_emergence == TRUE ~ "Contant emergence", 
+         constant_emergence = case_when(constant_emergence == TRUE ~ "Constant emergence", 
                                         constant_emergence == FALSE ~ "Carrying capacity"))
 
 
@@ -220,14 +224,58 @@ impact_plot <- ggplot(summary_impact, aes(x = factor(time_period, levels = c("10
   scale_fill_manual(values = scenario_pals)+
   guides(fill = "none")
 
+library(ggpattern)
+
+impact_plot_main <- ggplot(summary_impact, 
+                           aes(x = factor(time_period, levels = c("10d", "30d", "90d", "250d")),
+                               y = log(rel_diff_cases + 1),
+                               fill = as.factor(delta_t),
+                               pattern = as.factor(constant_emergence))) +
+  geom_bar_pattern(
+    stat = "identity", 
+    position = position_dodge(),
+    colour = "black",                # Border of bars
+    pattern_colour = "black",        # Pattern line color
+    pattern_fill = NA,               # Transparent so bar fill shows
+    pattern_density = 0.4,           
+    pattern_spacing = 0.02,          
+    pattern_key_scale_factor = 0.5
+  ) +
+  theme_minimal() +
+  scale_y_continuous(limits = c(0, 4), labels = c(0, 10, 20, 30, 40)) +
+  ylab("Efficacy (%)") +
+  xlab("Time period over which incidence measured since intervention start") +
+  labs(fill = "Time to complete MDA (days)",
+       pattern = "Adult emergence") +
+  theme(legend.position = c(0.8, 0.9)) +
+  scale_fill_manual(values = scenario_pals) +
+  scale_pattern_manual(values = c("Carrying capacity" = "none",
+                                  "Constant emergence" = "stripe"))+
+  guides(pattern = guide_legend(
+    override.aes = list(fill = "white"), # Force fill color in legend
+  ), 
+  #fill = guide_legend(override.aes = list(pattern = "none")), 
+  fill = "none")
+
+
 
 #need to fix vertical alignment
-figure_dynamics_impact <- cowplot::plot_grid(mosq_killed_plot, mosq_pop_plot, 
+#figure_dynamics_impact <- cowplot::plot_grid(mosq_killed_plot, mosq_pop_plot, 
+#                                      daily_inc_plot, prevalence_plot, 
+#                                      Re_t_plot,
+#                                      impact_main_plot,
+#                                      align = "v",
+#                                      labels = c("A", "B", "C", "D", "E"))
+#
+figure_dynamics <- cowplot::plot_grid(mosq_killed_plot, mosq_pop_plot, 
                                       daily_inc_plot, prevalence_plot, 
-                                      Re_t_plot,
-                                      impact_plot,
+                                     
                                       align = "v",
-                                      labels = c("A", "B", "C", "D", "E"))
+                                      labels = c("A", "B", "C", "D"))
+
+figure_dynamic_impact <- cowplot::plot_grid(figure_dynamics, impact_plot_main, 
+                                            labels = c("", "E"))
+ggsave(figure_dynamic_impact, file = "3.plots/simple_model_plot.png")                                           
 
 #sensitivity for higher V-H ratio but same proportion killed
 model_base_long2 <- base_scenarios %>%
